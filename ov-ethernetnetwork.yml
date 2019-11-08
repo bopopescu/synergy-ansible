@@ -16,7 +16,7 @@
 ---
 - hosts: localhost
   vars:
-    config: "~/ansible-scripts/oneview_config.json"
+    config: "oneview_config.json"
   tasks:
 
      - name: Create an Ethernet Network a-oob-mgmt
