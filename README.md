@@ -1,2 +1,2 @@
 # synergy-ansible
-Entwicklungsreposiory für Synergy Automatisierung mit Ansible
+Entwicklungsrepository für Synergy Automatisierung mit Ansible
