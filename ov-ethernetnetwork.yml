@@ -1,0 +1,245 @@
+###
+# Copyright (2016-2017) Hewlett Packard Enterprise Development LP
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+###
+---
+- hosts: localhost
+  vars:
+    config: "~/ansible-scripts/oneview_config.json"
+  tasks:
+
+     - name: Create an Ethernet Network a-oob-mgmt
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "a-oob-mgmt"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 2116
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network ei-1300-48
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "ei-1300-48"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 1300
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network ib-mgmt
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "ib-mgmt"
+             ethernetNetworkType:    Tagged
+             purpose:                Management
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 2101
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network iSCSI-A
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "iSCSI-A"
+             ethernetNetworkType:    Tagged
+             purpose:                ISCSI
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 2110
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network iSCSI-B
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "iSCSI-B"
+             ethernetNetworkType:    Tagged
+             purpose:                ISCSI
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 2111
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network iSCSI-Deployment
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "iSCSI-Deployment"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 2113
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network prod-1000-0
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "prod-1000-0"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 1000
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network prt-1100-16
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "prt-1100-16"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 1100
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network tst-1200-32
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "tst-1200-32"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 1200
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network vpna-3400-180
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "vpna-3400-180"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 3400
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network vpns-3200-224
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "vpns-3200-224"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 3200
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network vSphereFT
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "vSphereFT"
+             ethernetNetworkType:    Tagged
+             purpose:                FaultTolerance
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 2106
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network vSphereVMotion
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "vSphereVMotion"
+             ethernetNetworkType:    Tagged
+             purpose:                VMMigration
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 2102
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 
+     - name: Create an Ethernet Network web-3000-0
+       oneview_ethernet_network:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "web-3000-0"
+             ethernetNetworkType:    Tagged
+             purpose:                General
+             smartLink:              true
+             privateNetwork:         false
+             vlanId:                 3000
+             bandwidth:
+                typicalBandwidth: 2500
+                maximumBandwidth: 20000
+       delegate_to: localhost
+ 

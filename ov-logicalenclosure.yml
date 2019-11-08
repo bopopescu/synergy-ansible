@@ -1,0 +1,59 @@
+###
+# Copyright (2016-2017) Hewlett Packard Enterprise Development LP
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+###
+---
+- hosts: localhost
+  vars:
+    config: "~/ansible-scripts/oneview_config.json"
+  tasks:
+
+#---------------------------- Logical Enclosure ComputeBlockB
+     - name: Get uri for EnclosureGroup Nublar_EG_3e
+       oneview_enclosure_group_facts:
+         config:         "{{ config }}"
+         name:           "Nublar_EG_3e"
+     - set_fact:         var_Nublar_EG_3e="{{enclosure_groups[0].uri}}"
+ 
+     - name: Get uri for Enclosure A-Master1
+       oneview_enclosure_facts:
+         config:         "{{ config }}"
+         name:           "A-Master1"
+     - set_fact:         var_A_Master1="{{enclosures[0].uri}}"
+ 
+     - name: Get uri for Enclosure A-Master2
+       oneview_enclosure_facts:
+         config:         "{{ config }}"
+         name:           "A-Master2"
+     - set_fact:         var_A_Master2="{{enclosures[0].uri}}"
+ 
+     - name: Get uri for Enclosure A-Slave
+       oneview_enclosure_facts:
+         config:         "{{ config }}"
+         name:           "A-Slave"
+     - set_fact:         var_A_Slave="{{enclosures[0].uri}}"
+ 
+     - name: Create logical enclosure ComputeBlockB
+       oneview_logical_enclosure:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                   "ComputeBlockB"
+             enclosureGroupUri:     "{{var_Nublar_EG_3e}}"    # Enclosure Group name Nublar_EG_3e 
+             enclosureUris:
+                 - "{{var_A_Master1}}"  # Enclosure name B-Master1
+                 - "{{var_A_Master2}}"  # Enclosure name B-Master2
+                 - "{{var_A_Slave}}"  # Enclosure name B-Slave
+       delegate_to: localhost
+ 
