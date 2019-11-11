@@ -1,0 +1,33 @@
+---
+- hosts: localhost
+  vars:
+    - config: "{{ playbook_dir }}/oneview_config.json"
+    - subnet_name: 10.40.194.0_Subnet
+  tasks:
+
+    - name: Gather facts about ID Pools IPV4 Subnets by name
+      oneview_id_pools_ipv4_subnet_facts:
+        config: "{{ config }}"
+        name: '{{ subnet_name }}'
+      delegate_to: localhost
+
+    - set_fact: subnet_uri="{{ id_pools_ipv4_subnets[0].uri }}"
+    - debug: var=subnet_uri
+
+    - name: Create an Ethernet Network
+      oneview_ethernet_network:
+        config: "{{ config }}"
+        state: present
+        data:
+            name:                   "ib-mgmt"
+            ethernetNetworkType:    Tagged
+            purpose:                Management
+            smartLink:              true
+            privateNetwork:         false
+            vlanId:                 2101
+            subnetUri:              "{{ subnet_uri }}"
+            bandwidth:
+               typicalBandwidth: 2500
+               maximumBandwidth: 20000
+      delegate_to: localhost
+
