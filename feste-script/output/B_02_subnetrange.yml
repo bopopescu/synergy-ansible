@@ -1,0 +1,209 @@
+###
+# created by python script convert.py
+# Felix Sterzelmaier, Concat AG
+# Created: 2019-11-11 16:52:34 CET(+0100)
+# Dependencies: pip install --upgrade pip
+# Dependencies: pip install pyvmomi
+# Dependencies: pip3.6 install --upgrade pip
+# Dependencies: /usr/local/bin/pip3.6 install pyvmomi
+# Test with: ansible-playbook (filename) --connection=local --check
+# Run with: ansible-playbook (filename) --connection=local
+# OR run with Python 2.7.5: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2'
+# OR run with Python 2.7.16: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2.7'
+# OR run with Python 3.6.8: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python3'
+# Run on: 10.10.5.239 as user ansible in path /home/ansible/
+# Before reading this playbook please read the sourcecode of convert.py first!
+###
+---
+- hosts: localhost
+  vars:
+    config: "B_oneview_config.json"
+  tasks:
+
+     - name: Create subnet 10.40.210.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.210.0_Subnet
+             type: Subnet
+             networkId: 10.40.210.0
+             subnetmask: 255.255.254.0
+             gateway: 10.40.211.254
+             domain: ad.nublar.de
+             dnsServers:
+                 - 10.40.72.10
+                 - 10.40.72.11
+       delegate_to: localhost
+
+     - name: Create subnet 10.40.192.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.192.0_Subnet
+             type: Subnet
+             networkId: 10.40.192.0
+             subnetmask: 255.255.254.0
+             gateway: 10.40.193.254
+             domain: ad.nublar.de
+             dnsServers:
+                 - 10.40.72.10
+                 - 10.40.72.11
+       delegate_to: localhost
+
+     - set_fact: subnet_uri="{{ id_pools_ipv4_subnet["uri"] }}" 
+     - name: Create IPV4 range b-oob-mgmt
+       oneview_id_pools_ipv4_range:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: b-oob-mgmt
+             subnetUri: "{{ subnet_uri }}" 
+             type: Range
+             rangeCategory: Custom
+             startAddress: 10.40.193.131
+             endAddress: 10.40.193.170
+       delegate_to: localhost
+
+     - name: Create subnet 10.40.194.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.194.0_Subnet
+             type: Subnet
+             networkId: 10.40.194.0
+             subnetmask: 255.255.254.0
+             gateway: 10.40.195.254
+             domain: ad.nublar.de
+             dnsServers:
+                 - 10.40.72.10
+                 - 10.40.72.11
+       delegate_to: localhost
+
+     - name: Create subnet 10.40.196.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.196.0_Subnet
+             type: Subnet
+             networkId: 10.40.196.0
+             subnetmask: 255.255.255.0
+       delegate_to: localhost
+
+     - set_fact: subnet_uri="{{ id_pools_ipv4_subnet["uri"] }}" 
+     - name: Create IPV4 range vSphereVMotion
+       oneview_id_pools_ipv4_range:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: vSphereVMotion
+             subnetUri: "{{ subnet_uri }}" 
+             type: Range
+             rangeCategory: Custom
+             startAddress: 10.40.196.31
+             endAddress: 10.40.196.60
+       delegate_to: localhost
+
+     - name: Create subnet 10.40.200.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.200.0_Subnet
+             type: Subnet
+             networkId: 10.40.200.0
+             subnetmask: 255.255.255.0
+       delegate_to: localhost
+
+     - set_fact: subnet_uri="{{ id_pools_ipv4_subnet["uri"] }}" 
+     - name: Create IPV4 range vSphereFT
+       oneview_id_pools_ipv4_range:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: vSphereFT
+             subnetUri: "{{ subnet_uri }}" 
+             type: Range
+             rangeCategory: Custom
+             startAddress: 10.40.200.61
+             endAddress: 10.40.200.90
+       delegate_to: localhost
+
+     - name: Create subnet 10.40.204.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.204.0_Subnet
+             type: Subnet
+             networkId: 10.40.204.0
+             subnetmask: 255.255.255.0
+       delegate_to: localhost
+
+     - set_fact: subnet_uri="{{ id_pools_ipv4_subnet["uri"] }}" 
+     - name: Create IPV4 range iSCSI-A
+       oneview_id_pools_ipv4_range:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: iSCSI-A
+             subnetUri: "{{ subnet_uri }}" 
+             type: Range
+             rangeCategory: Custom
+             startAddress: 10.40.204.31
+             endAddress: 10.40.204.60
+       delegate_to: localhost
+
+     - name: Create subnet 10.40.205.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.205.0_Subnet
+             type: Subnet
+             networkId: 10.40.205.0
+             subnetmask: 255.255.255.0
+       delegate_to: localhost
+
+     - set_fact: subnet_uri="{{ id_pools_ipv4_subnet["uri"] }}" 
+     - name: Create IPV4 range iSCSI-B
+       oneview_id_pools_ipv4_range:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: iSCSI-B
+             subnetUri: "{{ subnet_uri }}" 
+             type: Range
+             rangeCategory: Custom
+             startAddress: 10.40.205.31
+             endAddress: 10.40.205.60
+       delegate_to: localhost
+
+     - name: Create subnet 10.40.207.0
+       oneview_id_pools_ipv4_subnet:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: 10.40.207.0_Subnet
+             type: Subnet
+             networkId: 10.40.207.0
+             subnetmask: 255.255.255.0
+       delegate_to: localhost
+
+     - set_fact: subnet_uri="{{ id_pools_ipv4_subnet["uri"] }}" 
+     - name: Create IPV4 range iSCSI-Deployment
+       oneview_id_pools_ipv4_range:
+         config: "{{ config }}"
+         state: present
+         data:
+             name: iSCSI-Deployment
+             subnetUri: "{{ subnet_uri }}" 
+             type: Range
+             rangeCategory: Custom
+             startAddress: 10.40.207.11
+             endAddress: 10.40.207.50
+       delegate_to: localhost
+

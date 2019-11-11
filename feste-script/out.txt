@@ -1,0 +1,445 @@
+
+PLAY [all] ******************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Gather facts about all Logical Interconnect Groups] *******************************************************************************************************************
+ok: [localhost -> localhost]
+
+TASK [debug] ****************************************************************************************************************************************************************
+ok: [localhost] => {
+    "logical_interconnect_groups": [
+        {
+            "category": "logical-interconnect-groups",
+            "created": "2019-08-31T21:33:02.089Z",
+            "description": null,
+            "eTag": "a3cd3016-6878-4a3b-aeef-2831da77fe59",
+            "enclosureIndexes": [
+                1,
+                2,
+                3
+            ],
+            "enclosureType": "SY12000",
+            "ethernetSettings": {
+                "category": null,
+                "created": "2019-08-31T21:33:02.089Z",
+                "dependentResourceUri": "/rest/logical-interconnect-groups/4024a3bb-5459-45d3-9a34-d9f8dc0c4ac2",
+                "description": null,
+                "eTag": null,
+                "enableFastMacCacheFailover": true,
+                "enableIgmpSnooping": false,
+                "enableInterconnectUtilizationAlert": false,
+                "enableNetworkLoopProtection": true,
+                "enablePauseFloodProtection": true,
+                "enableRichTLV": false,
+                "enableStormControl": false,
+                "enableTaggedLldp": true,
+                "id": "5751327e-9db8-4e5a-9f74-7d0b4cb64c8d",
+                "igmpIdleTimeoutInterval": 260,
+                "igmpSnoopingVlanIds": "",
+                "interconnectType": "Ethernet",
+                "lldpIpAddressMode": "IPV4",
+                "lldpIpv4Address": "",
+                "lldpIpv6Address": "",
+                "macRefreshInterval": 5,
+                "modified": "2019-10-29T13:08:40.694Z",
+                "name": "name1978172186-1567287182089",
+                "state": null,
+                "status": null,
+                "stormControlPollingInterval": 10,
+                "stormControlThreshold": 0,
+                "type": "EthernetInterconnectSettingsV5",
+                "uri": "/rest/logical-interconnect-groups/4024a3bb-5459-45d3-9a34-d9f8dc0c4ac2/ethernetSettings"
+            },
+            "fabricUri": "/rest/fabrics/6610cbe0-864e-4839-bd19-d4e4460cbadd",
+            "interconnectBaySet": 3,
+            "interconnectMapTemplate": {
+                "interconnectMapEntryTemplates": [
+                    {
+                        "enclosureIndex": 2,
+                        "logicalDownlinkUri": "/rest/logical-downlinks/d7fdaf18-52ae-411d-aadf-8527c2d8849c",
+                        "logicalLocation": {
+                            "locationEntries": [
+                                {
+                                    "relativeValue": 3,
+                                    "type": "Bay"
+                                },
+                                {
+                                    "relativeValue": 2,
+                                    "type": "Enclosure"
+                                }
+                            ]
+                        },
+                        "permittedInterconnectTypeUri": "/rest/interconnect-types/6c4eb51e-f43f-487b-9688-a7626588a57d"
+                    },
+                    {
+                        "enclosureIndex": 3,
+                        "logicalDownlinkUri": "/rest/logical-downlinks/76b5c9fd-1efd-4c05-a5b1-5630391b1533",
+                        "logicalLocation": {
+                            "locationEntries": [
+                                {
+                                    "relativeValue": 6,
+                                    "type": "Bay"
+                                },
+                                {
+                                    "relativeValue": 3,
+                                    "type": "Enclosure"
+                                }
+                            ]
+                        },
+                        "permittedInterconnectTypeUri": "/rest/interconnect-types/6c4eb51e-f43f-487b-9688-a7626588a57d"
+                    },
+                    {
+                        "enclosureIndex": 3,
+                        "logicalDownlinkUri": "/rest/logical-downlinks/d7fdaf18-52ae-411d-aadf-8527c2d8849c",
+                        "logicalLocation": {
+                            "locationEntries": [
+                                {
+                                    "relativeValue": 3,
+                                    "type": "Bay"
+                                },
+                                {
+                                    "relativeValue": 3,
+                                    "type": "Enclosure"
+                                }
+                            ]
+                        },
+                        "permittedInterconnectTypeUri": "/rest/interconnect-types/6c4eb51e-f43f-487b-9688-a7626588a57d"
+                    },
+                    {
+                        "enclosureIndex": 1,
+                        "logicalDownlinkUri": "/rest/logical-downlinks/76b5c9fd-1efd-4c05-a5b1-5630391b1533",
+                        "logicalLocation": {
+                            "locationEntries": [
+                                {
+                                    "relativeValue": 1,
+                                    "type": "Enclosure"
+                                },
+                                {
+                                    "relativeValue": 6,
+                                    "type": "Bay"
+                                }
+                            ]
+                        },
+                        "permittedInterconnectTypeUri": "/rest/interconnect-types/6c4eb51e-f43f-487b-9688-a7626588a57d"
+                    },
+                    {
+                        "enclosureIndex": 2,
+                        "logicalDownlinkUri": "/rest/logical-downlinks/76b5c9fd-1efd-4c05-a5b1-5630391b1533",
+                        "logicalLocation": {
+                            "locationEntries": [
+                                {
+                                    "relativeValue": 6,
+                                    "type": "Bay"
+                                },
+                                {
+                                    "relativeValue": 2,
+                                    "type": "Enclosure"
+                                }
+                            ]
+                        },
+                        "permittedInterconnectTypeUri": "/rest/interconnect-types/68d83f9b-2a06-461a-be59-5e71e8890bc0"
+                    },
+                    {
+                        "enclosureIndex": 1,
+                        "logicalDownlinkUri": "/rest/logical-downlinks/d7fdaf18-52ae-411d-aadf-8527c2d8849c",
+                        "logicalLocation": {
+                            "locationEntries": [
+                                {
+                                    "relativeValue": 1,
+                                    "type": "Enclosure"
+                                },
+                                {
+                                    "relativeValue": 3,
+                                    "type": "Bay"
+                                }
+                            ]
+                        },
+                        "permittedInterconnectTypeUri": "/rest/interconnect-types/68d83f9b-2a06-461a-be59-5e71e8890bc0"
+                    }
+                ]
+            },
+            "internalNetworkUris": [
+                "/rest/ethernet-networks/e28d9d49-14e6-4a8e-a0f2-f221a17852e7"
+            ],
+            "modified": "2019-10-29T13:08:40.807Z",
+            "name": "lig_vc",
+            "qosConfiguration": {
+                "activeQosConfig": {
+                    "category": "qos-aggregated-configuration",
+                    "configType": "Passthrough",
+                    "created": null,
+                    "description": null,
+                    "downlinkClassificationType": null,
+                    "eTag": null,
+                    "modified": null,
+                    "name": null,
+                    "qosTrafficClassifiers": [],
+                    "state": null,
+                    "status": null,
+                    "type": "QosConfiguration",
+                    "uplinkClassificationType": null,
+                    "uri": null
+                },
+                "category": "qos-aggregated-configuration",
+                "created": "2019-08-31T21:33:02.089Z",
+                "description": null,
+                "eTag": null,
+                "inactiveFCoEQosConfig": null,
+                "inactiveNonFCoEQosConfig": null,
+                "modified": "2019-08-31T21:33:02.089Z",
+                "name": null,
+                "state": null,
+                "status": null,
+                "type": "qos-aggregated-configuration",
+                "uri": null
+            },
+            "redundancyType": "HighlyAvailable",
+            "scopesUri": "/rest/scopes/resources/rest/logical-interconnect-groups/8ef1c50b-fc2d-472a-8000-90aaa4aa92db",
+            "sflowConfiguration": null,
+            "snmpConfiguration": {
+                "category": "snmp-configuration",
+                "created": "2019-08-31T21:33:02.089Z",
+                "description": null,
+                "eTag": null,
+                "enabled": false,
+                "modified": "2019-08-31T21:33:02.089Z",
+                "name": null,
+                "readCommunity": "",
+                "snmpAccess": [],
+                "snmpUsers": [],
+                "state": null,
+                "status": null,
+                "systemContact": "",
+                "trapDestinations": [],
+                "type": "snmp-configuration",
+                "uri": null,
+                "v3Enabled": true
+            },
+            "stackingHealth": null,
+            "stackingMode": null,
+            "state": "Active",
+            "status": null,
+            "telemetryConfiguration": {
+                "category": "telemetry-configuration",
+                "created": "2019-08-31T21:33:02.114Z",
+                "description": null,
+                "eTag": null,
+                "enableTelemetry": true,
+                "modified": "2019-08-31T21:33:02.114Z",
+                "name": null,
+                "sampleCount": 12,
+                "sampleInterval": 300,
+                "state": null,
+                "status": null,
+                "type": "telemetry-configuration",
+                "uri": null,
+                "vcfcsampleIntervals": null
+            },
+            "type": "logical-interconnect-groupV6",
+            "uplinkSets": [
+                {
+                    "ethernetNetworkType": "Tagged",
+                    "fcMode": "NA",
+                    "lacpTimer": "Long",
+                    "loadBalancingMode": "SourceAndDestinationMac",
+                    "logicalPortConfigInfos": [
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 6,
+                                        "type": "Bay"
+                                    },
+                                    {
+                                        "relativeValue": 2,
+                                        "type": "Enclosure"
+                                    },
+                                    {
+                                        "relativeValue": 71,
+                                        "type": "Port"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 1,
+                                        "type": "Enclosure"
+                                    },
+                                    {
+                                        "relativeValue": 3,
+                                        "type": "Bay"
+                                    },
+                                    {
+                                        "relativeValue": 71,
+                                        "type": "Port"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 1,
+                                        "type": "Enclosure"
+                                    },
+                                    {
+                                        "relativeValue": 66,
+                                        "type": "Port"
+                                    },
+                                    {
+                                        "relativeValue": 3,
+                                        "type": "Bay"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 6,
+                                        "type": "Bay"
+                                    },
+                                    {
+                                        "relativeValue": 66,
+                                        "type": "Port"
+                                    },
+                                    {
+                                        "relativeValue": 2,
+                                        "type": "Enclosure"
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "mode": "Auto",
+                    "name": "Uplink_Prod",
+                    "nativeNetworkUri": null,
+                    "networkType": "Ethernet",
+                    "networkUris": [
+                        "/rest/ethernet-networks/f4d1ad99-f732-44f8-b2b0-2547761a66e7",
+                        "/rest/ethernet-networks/e0718b4e-d80d-4f04-9538-4520bff3a1fb",
+                        "/rest/ethernet-networks/19cbeed4-3587-4605-b690-f532e0dd8d9d",
+                        "/rest/ethernet-networks/5cef2f79-033f-4019-9cba-80f2ac01a480",
+                        "/rest/ethernet-networks/8679eb7e-9630-4cec-bee7-f9da453c83a8",
+                        "/rest/ethernet-networks/d5a7b6fb-eae5-4ea8-a13d-4288d17f9562",
+                        "/rest/ethernet-networks/d2861e5d-3b55-43a9-93ad-e3c2ea7f4732",
+                        "/rest/ethernet-networks/13d9ce79-af04-49b5-9ed1-a69a551e37e4"
+                    ],
+                    "primaryPort": null,
+                    "privateVlanDomains": [],
+                    "reachability": null
+                },
+                {
+                    "ethernetNetworkType": "ImageStreamer",
+                    "fcMode": "NA",
+                    "lacpTimer": "Short",
+                    "loadBalancingMode": "None",
+                    "logicalPortConfigInfos": [
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 63,
+                                        "type": "Port"
+                                    },
+                                    {
+                                        "relativeValue": 6,
+                                        "type": "Bay"
+                                    },
+                                    {
+                                        "relativeValue": 2,
+                                        "type": "Enclosure"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 1,
+                                        "type": "Enclosure"
+                                    },
+                                    {
+                                        "relativeValue": 62,
+                                        "type": "Port"
+                                    },
+                                    {
+                                        "relativeValue": 3,
+                                        "type": "Bay"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 62,
+                                        "type": "Port"
+                                    },
+                                    {
+                                        "relativeValue": 6,
+                                        "type": "Bay"
+                                    },
+                                    {
+                                        "relativeValue": 2,
+                                        "type": "Enclosure"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "desiredSpeed": "Auto",
+                            "logicalLocation": {
+                                "locationEntries": [
+                                    {
+                                        "relativeValue": 1,
+                                        "type": "Enclosure"
+                                    },
+                                    {
+                                        "relativeValue": 63,
+                                        "type": "Port"
+                                    },
+                                    {
+                                        "relativeValue": 3,
+                                        "type": "Bay"
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "mode": "Auto",
+                    "name": "iSCSI-Deployment",
+                    "nativeNetworkUri": null,
+                    "networkType": "Ethernet",
+                    "networkUris": [
+                        "/rest/ethernet-networks/81c885d7-3858-477d-9d73-c1e6f40db12e"
+                    ],
+                    "primaryPort": null,
+                    "privateVlanDomains": [],
+                    "reachability": null
+                }
+            ],
+            "uri": "/rest/logical-interconnect-groups/8ef1c50b-fc2d-472a-8000-90aaa4aa92db"
+        }
+    ]
+}
+
+PLAY RECAP ******************************************************************************************************************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
