@@ -575,9 +575,10 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 				outfile.write('                - "{{var_'+convertToAnsibleVariableName(v["name"])+'}}"    # networkName: '+v["name"]+' '+"\n")
 
 		outfile.write('             uplinkSets:'+"\n")
-		outfile.write('                 - name:             "iSCSI-Deployment"'+"\n")
-		outfile.write('                   networkType:      "Ethernet"'+"\n")
-		outfile.write('                   mode:             "Auto"'+"\n")
+		outfile.write('                 - name:                  "iSCSI-Deployment"'+"\n")
+		outfile.write('                   networkType:           "Ethernet"'+"\n")
+		outfile.write('                   ethernetNetworkType:   "ImageStreamer"'+"\n")
+		outfile.write('                   mode:                  "Auto"'+"\n")
 		outfile.write('                   networkUris:'+"\n")
 
 		for v in variables:
@@ -624,6 +625,7 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 		outfile.write('                 - name:             "Uplink_Prod"'+"\n")
 		outfile.write('                   networkType:      "Ethernet"'+"\n")
 		outfile.write('                   mode:             "Auto"'+"\n")
+		outfile.write('                   lacpTimer:        "Long"'+"\n")
 		outfile.write('                   networkUris:'+"\n")
 		
 		for v in variables:

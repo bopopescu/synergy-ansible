@@ -1,7 +1,7 @@
 ###
 # created by python script convert.py
 # Felix Sterzelmaier, Concat AG
-# Created: 2019-11-11 16:52:35 CET(+0100)
+# Created: 2019-11-11 17:07:45 CET(+0100)
 # Dependencies: pip install --upgrade pip
 # Dependencies: pip install pyvmomi
 # Dependencies: pip3.6 install --upgrade pip
@@ -203,9 +203,10 @@
              internalNetworkUris:
                 - "{{var_vsphereft}}"    # networkName: vSphereFT 
              uplinkSets:
-                 - name:             "iSCSI-Deployment"
-                   networkType:      "Ethernet"
-                   mode:             "Auto"
+                 - name:                  "iSCSI-Deployment"
+                   networkType:           "Ethernet"
+                   ethernetNetworkType:   "ImageStreamer"
+                   mode:                  "Auto"
                    networkUris:
                          - "{{var_iscsi_deployment}}"    # networkName: iSCSI-Deployment 
                    logicalPortConfigInfos:
@@ -248,6 +249,7 @@
                  - name:             "Uplink_Prod"
                    networkType:      "Ethernet"
                    mode:             "Auto"
+                   lacpTimer:        "Long"
                    networkUris:
                          - "{{var_ei_1300_48}}"    # networkName: ei-1300-48 
                          - "{{var_ib_mgmt}}"    # networkName: ib-mgmt 
