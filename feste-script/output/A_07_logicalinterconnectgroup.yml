@@ -26,6 +26,7 @@
          config: "{{ config }}"
          state: present
          data:
+             type:                   "sas-logical-interconnect-groupV2"
              name:                   "lig_sas"
              enclosureType:          "SY12000"
              redundancyType:         ""
@@ -53,12 +54,6 @@
        delegate_to: localhost
  
 #---------------------------- Logical Interconnect Group lig_vc
-     - name: Get uri for network b-oob-mgmt
-       oneview_ethernet_network_facts:
-         config:         "{{ config }}"
-         name:           "b-oob-mgmt"
-     - set_fact:         var_b_oob_mgmt="{{ethernet_networks.uri}}"
-
      - name: Get uri for network ei-1300-48
        oneview_ethernet_network_facts:
          config:         "{{ config }}"
@@ -119,23 +114,24 @@
          name:           "vSphereVMotion"
      - set_fact:         var_vspherevmotion="{{ethernet_networks.uri}}"
 
-     - name: Get uri for network a-oob-mgmt
+     - name: Get uri for network oob-mgmt
        oneview_ethernet_network_facts:
          config:         "{{ config }}"
-         name:           "a-oob-mgmt"
-     - set_fact:         var_a_oob_mgmt="{{ethernet_networks.uri}}"
+         name:           "oob-mgmt"
+     - set_fact:         var_oob_mgmt="{{ethernet_networks.uri}}"
 
      - name: Create logical Interconnect Group lig_vc
        oneview_logical_interconnect_group:
          config: "{{ config }}"
          state: present
          data:
+             type:                   "logical-interconnect-groupV6"
              name:                   "lig_vc"
              enclosureType:          "SY12000"
              redundancyType:         "HighlyAvailable"
              interconnectBaySet:     3
              ethernetSettings:           
-                 type:                           "EthernetInterconnectSettingsV4"
+                 type:                           "EthernetInterconnectSettingsV5"
                  enableIgmpSnooping:             false
                  igmpIdleTimeoutInterval:        260
                  enableNetworkLoopProtection:    true
