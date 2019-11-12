@@ -1,8 +1,7 @@
 #Created by Felix Sterzelmaier, Concat AG
 #2019-11
-#tested on Python 3.7.4
-#run with run.bat
-# echo "" > playbook_synergy.yml && nano playbook_synergy.yml && ansible-playbook playbook_synergy.yml --connection=local
+#tested on Python 3.7.4 and 3.7.5rc1
+#run with "run.bat" or "python3 ./convert.py" or "python ./convert.py"
 
 #imports
 import xlrd
@@ -22,7 +21,7 @@ import re
 
 filename_prefix = ""
 filename_sufix = ".yml"
-columnNames = "A"
+columnNames = "A" # in exceltabgeneral
 config_prefx = ""
 config_sufix = "_oneview_config.json"
 inputfilename = "wip_checkliste_gesamt.xlsx"
@@ -112,8 +111,8 @@ def writeFileheader(outfile,configFileName):
 	outfile.write("# OR run with Python 2.7.5: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2'\n")
 	outfile.write("# OR run with Python 2.7.16: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2.7'\n")
 	outfile.write("# OR run with Python 3.6.8: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python3'\n")
-	outfile.write("# Run on: 10.10.5.239 as user ansible in path /home/ansible/\n")
-	outfile.write("# Before reading this playbook please read the sourcecode of convert.py first!\n")
+	outfile.write("# Run on: 10.10.5.239/olant-ansible as user olant in path /home/olant/synergy-ansible/feste-script/output\n")
+	outfile.write("# Before reading this playbook please read the README.txt and the sourcecode of convert.py first!\n")
 	outfile.write("###\n")
 	outfile.write("---\n")
 	outfile.write("- hosts: localhost\n")
