@@ -918,7 +918,7 @@ def writeLogicalEnclosure(nr,filenamepart):
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		
 		#BEGIN
-		outfile.write('- name: Gather facts about SPP\n')
+		outfile.write('  - name: Gather facts about SPP\n')
 		outfile.write('    oneview_firmware_driver_facts:\n')
 		outfile.write('      config: "{{ config }}"\n')
 		outfile.write('    no_log: true\n')
@@ -971,7 +971,7 @@ def writeLogicalEnclosure(nr,filenamepart):
 		outfile.write('  - name: Create a Logical Enclosure (available only on HPE Synergy)'+"\n")
 		outfile.write('    oneview_logical_enclosure:'+"\n")
 		outfile.write('      config: "{{ config }}"'+"\n")
-		outfile.write('      state: absent'+"\n")
+		outfile.write('      state: present'+"\n")
 		outfile.write('      data:'+"\n")
 		outfile.write('        name: "ComputeBlock'+frame["letter"]+'"'+"\n")
 		outfile.write('        enclosureUris:'+"\n")
