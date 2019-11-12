@@ -1,7 +1,7 @@
 ###
 # created by python script convert.py
 # Felix Sterzelmaier, Concat AG
-# Created: 2019-11-12 11:04:02 CET(+0100)
+# Created: 2019-11-12 11:08:29 CET(+0100)
 # Dependencies: pip install --upgrade pip
 # Dependencies: pip install pyvmomi
 # Dependencies: pip3.6 install --upgrade pip
@@ -32,38 +32,5 @@
             - prod-1000-0
             - prt-1100-16
             - tst-1200-32
-      delegate_to: localhost
-
-    - name: Create Network Set abc
-      oneview_network_set:
-        config: "{{ config }}"
-        state: present
-        data:
-          type: "network-setV4"
-          name: "abc"
-          networkUris:
-            - iSCSI-A
-            - iSCSI-B
-      delegate_to: localhost
-
-    - name: Create Network Set aaa
-      oneview_network_set:
-        config: "{{ config }}"
-        state: present
-        data:
-          type: "network-setV4"
-          name: "aaa"
-          networkUris:
-            - iSCSI-Deployment
-      delegate_to: localhost
-
-    - name: Create Network Set bbb
-      oneview_network_set:
-        config: "{{ config }}"
-        state: present
-        data:
-          type: "network-setV4"
-          name: "bbb"
-          networkUris:
       delegate_to: localhost
 
