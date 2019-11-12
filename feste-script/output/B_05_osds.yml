@@ -20,14 +20,16 @@
     config: "B_oneview_config.json"
   tasks:
 
-     - name: Configure time locale in en_US.UTF-8
-       oneview_appliance_time_and_locale_configuration:
-         config: "{{ config }}"
-         state: present
-         data:
-             locale: en_US.UTF-8
-             timezone: UTC
-             ntpServers:
-                 - 10.40.193.254
-       delegate_to: localhost
+  tasks:
+    - name: Ensure that the Deployment Server is present
+      oneview_os_deployment_server:
+        config: "{{ config_file_path }}"
+        state: present
+        data:
+          name: "B-DCB-SYN0002_OSDS"
+          mgmtNetworkName: "oob-mgmt"
+          applianceName: "B-Master2, appliance 2"
+          deplManagersType: "Image Streamer"
+
+    - debug: var=os_deployment_server
 

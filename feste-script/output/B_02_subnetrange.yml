@@ -1,7 +1,7 @@
 ###
 # created by python script convert.py
 # Felix Sterzelmaier, Concat AG
-# Created: 2019-11-11 17:07:44 CET(+0100)
+# Created: 2019-11-12 11:04:02 CET(+0100)
 # Dependencies: pip install --upgrade pip
 # Dependencies: pip install pyvmomi
 # Dependencies: pip3.6 install --upgrade pip
@@ -20,22 +20,6 @@
     config: "B_oneview_config.json"
   tasks:
 
-     - name: Create subnet 10.40.210.0
-       oneview_id_pools_ipv4_subnet:
-         config: "{{ config }}"
-         state: present
-         data:
-             name: 10.40.210.0_Subnet
-             type: Subnet
-             networkId: 10.40.210.0
-             subnetmask: 255.255.254.0
-             gateway: 10.40.211.254
-             domain: ad.nublar.de
-             dnsServers:
-                 - 10.40.72.10
-                 - 10.40.72.11
-       delegate_to: localhost
-
      - name: Create subnet 10.40.192.0
        oneview_id_pools_ipv4_subnet:
          config: "{{ config }}"
@@ -53,12 +37,12 @@
        delegate_to: localhost
 
      - set_fact: subnet_uri="{{ id_pools_ipv4_subnet["uri"] }}" 
-     - name: Create IPV4 range b-oob-mgmt
+     - name: Create IPV4 range oob-mgmt
        oneview_id_pools_ipv4_range:
          config: "{{ config }}"
          state: present
          data:
-             name: b-oob-mgmt
+             name: oob-mgmt
              subnetUri: "{{ subnet_uri }}" 
              type: Range
              rangeCategory: Custom

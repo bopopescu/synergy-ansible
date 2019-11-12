@@ -1,7 +1,7 @@
 ###
 # created by python script convert.py
 # Felix Sterzelmaier, Concat AG
-# Created: 2019-11-11 17:07:45 CET(+0100)
+# Created: 2019-11-12 11:04:03 CET(+0100)
 # Dependencies: pip install --upgrade pip
 # Dependencies: pip install pyvmomi
 # Dependencies: pip3.6 install --upgrade pip
@@ -29,6 +29,7 @@
              name:                   "lig_sas"
              enclosureType:          "SY12000"
              redundancyType:         ""
+             type:                   "sas-logical-interconnect-groupV2"
              interconnectBaySet:     1
              enclosureIndexes:
                  - 1
@@ -132,10 +133,11 @@
          data:
              name:                   "lig_vc"
              enclosureType:          "SY12000"
+             type:                   "logical-interconnect-groupV6"
              redundancyType:         "HighlyAvailable"
              interconnectBaySet:     3
              ethernetSettings:           
-                 type:                           "EthernetInterconnectSettingsV4"
+                 type:                           "EthernetInterconnectSettingsV5"
                  enableIgmpSnooping:             false
                  igmpIdleTimeoutInterval:        260
                  enableNetworkLoopProtection:    true

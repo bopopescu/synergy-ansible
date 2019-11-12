@@ -459,6 +459,7 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 		outfile.write('             name:                   "lig_sas"'+"\n")
 		outfile.write('             enclosureType:          "SY12000"'+"\n")
 		outfile.write('             redundancyType:         ""'+"\n")
+		outfile.write('             type:                   "sas-logical-interconnect-groupV2"'+"\n")
 		outfile.write('             interconnectBaySet:     1'+"\n")
 		outfile.write('             enclosureIndexes:'+"\n")
 		outfile.write('                 - 1'+"\n")
@@ -500,10 +501,11 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 		outfile.write('         data:'+"\n")
 		outfile.write('             name:                   "lig_vc"'+"\n")
 		outfile.write('             enclosureType:          "SY12000"'+"\n")
+		outfile.write('             type:                   "logical-interconnect-groupV6"'+"\n")
 		outfile.write('             redundancyType:         "HighlyAvailable"'+"\n")
 		outfile.write('             interconnectBaySet:     3'+"\n")
 		outfile.write('             ethernetSettings:           '+"\n")
-		outfile.write('                 type:                           "EthernetInterconnectSettingsV4"'+"\n")
+		outfile.write('                 type:                           "EthernetInterconnectSettingsV5"'+"\n")
 		outfile.write('                 enableIgmpSnooping:             false'+"\n")
 		outfile.write('                 igmpIdleTimeoutInterval:        260'+"\n")
 		outfile.write('                 enableNetworkLoopProtection:    true'+"\n")
@@ -677,7 +679,182 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 		
 	
 	
+
+def writeOSdeploymentServer(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		
+		#BEGIN
+		outfile.write('  tasks:'+"\n")
+		outfile.write('    - name: Ensure that the Deployment Server is present'+"\n")
+		outfile.write('      oneview_os_deployment_server:'+"\n")
+		outfile.write('        config: "{{ config_file_path }}"'+"\n")
+		outfile.write('        state: present'+"\n")
+		outfile.write('        data:'+"\n")
+		outfile.write('          name: "'+frame["variables"]["oneview_hostname"]+'_OSDS"'+"\n")		 				#CODE oneview_hostname+"_OSDS"
+		outfile.write('          mgmtNetworkName: "oob-mgmt"'+"\n")
+		outfile.write('          applianceName: "'+frame["letter"]+'-Master2, appliance 2"'+"\n")		 #CODE Zone+"-Master2, appliance 2"
+		outfile.write('          deplManagersType: "Image Streamer"'+"\n")
+		outfile.write(''+"\n")
+		outfile.write('    - debug: var=os_deployment_server'+"\n")
+		outfile.write("\n")
+		#END
+		outfile.close()
+		
+def writeNetworkset(nr,filenamepart):
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabnets)
+	
+	variablesHead = []
+	variables = []
+	networksets = []
+	
+	for col in range(worksheet.ncols):
+		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
+		variablesHead.append(name)
+	
+	for row in range(1,worksheet.nrows):
+		variablesOneNet = {}
+		for col in range(worksheet.ncols):
+			val = worksheet.cell_value(row,col)
+			
+			if(isinstance(val,float)):
+				val = str(int(val))
+			
+			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
+				val = ""
+			
+			if(val.find("#TODO") != -1):
+				pos = val.find("#TODO")
+				val = val[:pos-1]
+			
+			variablesOneNet[variablesHead[col]] = val
+			
+			if(variablesHead[col]=="networkset"):
+				if(val!=""):
+					if(not val in networksets):
+						networksets.append(val)
+			
+		variables.append(variablesOneNet)
+	
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		for networkset in networksets:
+			outfile.write('    - name: Create Network Set '+networkset+"\n")
+			outfile.write('      oneview_network_set:'+"\n")
+			outfile.write('        config: "{{ config }}"'+"\n")
+			outfile.write('        state: present'+"\n")
+			outfile.write('        data:'+"\n")
+			outfile.write('          type: "network-setV4"'+"\n")
+			outfile.write('          name: "'+networkset+'"'+"\n")
+			outfile.write('          networkUris:'+"\n") # it is possible to pass names instead of URIs
+			for v in variables:
+				if(v["networkset"] == networkset):
+					if(frame["letter"] in v["zone"]):
+						outfile.write('            - '+v["name"]+"\n")
+			outfile.write('      delegate_to: localhost'+"\n")
+			outfile.write("\n")
+		#END
+		outfile.close()
+
+
+
+def writeEnclosureGroup(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		
+		#BEGIN
+		outfile.write('#---------------------------- Enclosure Group  Nublar_EG_3e'+"\n")
+		outfile.write('     - name: Get uri for LIG lig_sas'+"\n")
+		outfile.write('       oneview_sas_logical_interconnect_group_facts:'+"\n")
+		outfile.write('         config:         "{{ config }}"'+"\n")
+		outfile.write('         name:           "lig_sas"'+"\n")
+		outfile.write('     - set_fact:         var_lig_sas="{{sas_logical_interconnect_groups[0].uri}}"'+"\n")
+		outfile.write(' '+"\n")
+		outfile.write('     - name: Get uri for LIG lig_vc'+"\n")
+		outfile.write('       oneview_logical_interconnect_group_facts:'+"\n")
+		outfile.write('         config:         "{{ config }}"'+"\n")
+		outfile.write('         name:           "lig_vc"'+"\n")
+		outfile.write('     - set_fact:         var_lig_vc="{{logical_interconnect_groups[0].uri}}"'+"\n")
+		outfile.write(''+"\n")
+		outfile.write('     - name: Get uri for oobm-mgmt Pool'+"\n")
+		outfile.write('       oneview_ethernet_network_facts:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         name: "oob-mgmt"'+"\n")
+		outfile.write('     - set_fact:         var_oob_mgmt_subnet="{{ ethernet_networks.subnetUri }}"'+"\n")
+		outfile.write(''+"\n")
+		outfile.write('     - name: Get uri for oob-mgmt_Range'+"\n")
+		outfile.write('       oneview_id_pools_ipv4_range_facts:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         subnetUri: "{{ var_oob_mgmt_subnet }}"'+"\n")
+		outfile.write('     - set_fact: var_oob_mgmt_subnet_range="{{ id_pools_ipv4_ranges[0].uri }}"'+"\n")
+		outfile.write(' '+"\n")
+		outfile.write('     - name: Create Enclosure Group Nublar_EG_3e'+"\n")
+		outfile.write('       oneview_enclosure_group:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         state: present'+"\n")
+		outfile.write('         data:'+"\n")
+		outfile.write('             name:                                   "Nublar_EG_3e"'+"\n")
+		outfile.write('             ipAddressingMode:                       "IpPool"'+"\n")
+		outfile.write('             ipRangeUris:'+"\n")
+		outfile.write('               - "{{ var_oob_mgmt_subnet_range }}"'+"\n")
+		outfile.write('             osDeploymentSettings:'+"\n")
+		outfile.write('               manageOSDeployment: true'+"\n")
+		outfile.write('               deploymentModeSettings:'+"\n")
+		outfile.write('                 deploymentMode: Internal'+"\n")
+		outfile.write('             enclosureCount:                         3'+"\n")
+		outfile.write('             powerMode:                              RedundantPowerFeed'+"\n")
+		outfile.write('             interconnectBayMappings:'+"\n")
+		outfile.write('                 - interconnectBay:                  1'+"\n")
+		outfile.write('                   enclosureIndex:                   1'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas '+"\n")
+		outfile.write('                 - interconnectBay:                  1'+"\n")
+		outfile.write('                   enclosureIndex:                   2'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas '+"\n")
+		outfile.write('                 - interconnectBay:                  1'+"\n")
+		outfile.write('                   enclosureIndex:                   3'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas '+"\n")
+		outfile.write('                 - interconnectBay:                  3'+"\n")
+		outfile.write('                   enclosureIndex:                   1'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc '+"\n")
+		outfile.write('                 - interconnectBay:                  3'+"\n")
+		outfile.write('                   enclosureIndex:                   2'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc '+"\n")
+		outfile.write('                 - interconnectBay:                  3'+"\n")
+		outfile.write('                   enclosureIndex:                   3'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc '+"\n")
+		outfile.write('                 - interconnectBay:                  4'+"\n")
+		outfile.write('                   enclosureIndex:                   1'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas '+"\n")
+		outfile.write('                 - interconnectBay:                  4'+"\n")
+		outfile.write('                   enclosureIndex:                   2'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas '+"\n")
+		outfile.write('                 - interconnectBay:                  4'+"\n")
+		outfile.write('                   enclosureIndex:                   3'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas '+"\n")
+		outfile.write('                 - interconnectBay:                  6'+"\n")
+		outfile.write('                   enclosureIndex:                   1'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc '+"\n")
+		outfile.write('                 - interconnectBay:                  6'+"\n")
+		outfile.write('                   enclosureIndex:                   2'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc '+"\n")
+		outfile.write('                 - interconnectBay:                  6'+"\n")
+		outfile.write('                   enclosureIndex:                   3'+"\n")
+		outfile.write('                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc '+"\n")
+		outfile.write('       delegate_to: localhost'+"\n")
+		outfile.write("\n")
+		#END
+		outfile.close()
+	   
 def main():
 	findFrames()
 	fillVariables()
@@ -688,20 +865,15 @@ def main():
 	writeConfigs()
 	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
-	#3 später: Register hypervisor manager
+	####3 später: Register hypervisor manager
 	writeCreatenetwork("04","ethernetnetworkwithassociatedsubnet")
-	#5 später: add OSDS (os deployment server)
-	
-	#network set
-	
-	
-	#7 logical interconnect groups   #https://github.com/HewlettPackard/oneview-ansible/blob/master/examples/synergy_environment_setup.yml
-	writeLogicalInterconnectGroup("07","logicalinterconnectgroup")
-	
+	writeOSdeploymentServer("05","osds")
+	writeNetworkset("06","networkset")
+	writeLogicalInterconnectGroup("07","logicalinterconnectgroup") #https://github.com/HewlettPackard/oneview-ansible/blob/master/examples/synergy_environment_setup.yml
+	writeEnclosureGroup("08","enclosuregroup")
 	
 #start
 main()
 
 
-#todo
-#7 implementieren
+

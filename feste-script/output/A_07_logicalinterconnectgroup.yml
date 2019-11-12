@@ -1,7 +1,7 @@
 ###
 # created by python script convert.py
 # Felix Sterzelmaier, Concat AG
-# Created: 2019-11-11 17:07:45 CET(+0100)
+# Created: 2019-11-12 11:04:03 CET(+0100)
 # Dependencies: pip install --upgrade pip
 # Dependencies: pip install pyvmomi
 # Dependencies: pip3.6 install --upgrade pip
@@ -26,10 +26,10 @@
          config: "{{ config }}"
          state: present
          data:
-             type:                   "sas-logical-interconnect-groupV2"
              name:                   "lig_sas"
              enclosureType:          "SY12000"
              redundancyType:         ""
+             type:                   "sas-logical-interconnect-groupV2"
              interconnectBaySet:     1
              enclosureIndexes:
                  - 1
@@ -54,6 +54,12 @@
        delegate_to: localhost
  
 #---------------------------- Logical Interconnect Group lig_vc
+     - name: Get uri for network b-oob-mgmt
+       oneview_ethernet_network_facts:
+         config:         "{{ config }}"
+         name:           "b-oob-mgmt"
+     - set_fact:         var_b_oob_mgmt="{{ethernet_networks.uri}}"
+
      - name: Get uri for network ei-1300-48
        oneview_ethernet_network_facts:
          config:         "{{ config }}"
@@ -114,20 +120,20 @@
          name:           "vSphereVMotion"
      - set_fact:         var_vspherevmotion="{{ethernet_networks.uri}}"
 
-     - name: Get uri for network oob-mgmt
+     - name: Get uri for network a-oob-mgmt
        oneview_ethernet_network_facts:
          config:         "{{ config }}"
-         name:           "oob-mgmt"
-     - set_fact:         var_oob_mgmt="{{ethernet_networks.uri}}"
+         name:           "a-oob-mgmt"
+     - set_fact:         var_a_oob_mgmt="{{ethernet_networks.uri}}"
 
      - name: Create logical Interconnect Group lig_vc
        oneview_logical_interconnect_group:
          config: "{{ config }}"
          state: present
          data:
-             type:                   "logical-interconnect-groupV6"
              name:                   "lig_vc"
              enclosureType:          "SY12000"
+             type:                   "logical-interconnect-groupV6"
              redundancyType:         "HighlyAvailable"
              interconnectBaySet:     3
              ethernetSettings:           

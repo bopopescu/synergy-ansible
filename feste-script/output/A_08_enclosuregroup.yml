@@ -1,0 +1,101 @@
+###
+# created by python script convert.py
+# Felix Sterzelmaier, Concat AG
+# Created: 2019-11-12 11:04:03 CET(+0100)
+# Dependencies: pip install --upgrade pip
+# Dependencies: pip install pyvmomi
+# Dependencies: pip3.6 install --upgrade pip
+# Dependencies: /usr/local/bin/pip3.6 install pyvmomi
+# Test with: ansible-playbook (filename) --connection=local --check
+# Run with: ansible-playbook (filename) --connection=local
+# OR run with Python 2.7.5: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2'
+# OR run with Python 2.7.16: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2.7'
+# OR run with Python 3.6.8: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python3'
+# Run on: 10.10.5.239 as user ansible in path /home/ansible/
+# Before reading this playbook please read the sourcecode of convert.py first!
+###
+---
+- hosts: localhost
+  vars:
+    config: "A_oneview_config.json"
+  tasks:
+
+#---------------------------- Enclosure Group  Nublar_EG_3e
+     - name: Get uri for LIG lig_sas
+       oneview_sas_logical_interconnect_group_facts:
+         config:         "{{ config }}"
+         name:           "lig_sas"
+     - set_fact:         var_lig_sas="{{sas_logical_interconnect_groups[0].uri}}"
+ 
+     - name: Get uri for LIG lig_vc
+       oneview_logical_interconnect_group_facts:
+         config:         "{{ config }}"
+         name:           "lig_vc"
+     - set_fact:         var_lig_vc="{{logical_interconnect_groups[0].uri}}"
+
+     - name: Get uri for oobm-mgmt Pool
+       oneview_ethernet_network_facts:
+         config: "{{ config }}"
+         name: "oob-mgmt"
+     - set_fact:         var_oob_mgmt_subnet="{{ ethernet_networks.subnetUri }}"
+
+     - name: Get uri for oob-mgmt_Range
+       oneview_id_pools_ipv4_range_facts:
+         config: "{{ config }}"
+         subnetUri: "{{ var_oob_mgmt_subnet }}"
+     - set_fact: var_oob_mgmt_subnet_range="{{ id_pools_ipv4_ranges[0].uri }}"
+ 
+     - name: Create Enclosure Group Nublar_EG_3e
+       oneview_enclosure_group:
+         config: "{{ config }}"
+         state: present
+         data:
+             name:                                   "Nublar_EG_3e"
+             ipAddressingMode:                       "IpPool"
+             ipRangeUris:
+               - "{{ var_oob_mgmt_subnet_range }}"
+             osDeploymentSettings:
+               manageOSDeployment: true
+               deploymentModeSettings:
+                 deploymentMode: Internal
+             enclosureCount:                         3
+             powerMode:                              RedundantPowerFeed
+             interconnectBayMappings:
+                 - interconnectBay:                  1
+                   enclosureIndex:                   1
+                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas 
+                 - interconnectBay:                  1
+                   enclosureIndex:                   2
+                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas 
+                 - interconnectBay:                  1
+                   enclosureIndex:                   3
+                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas 
+                 - interconnectBay:                  3
+                   enclosureIndex:                   1
+                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc 
+                 - interconnectBay:                  3
+                   enclosureIndex:                   2
+                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc 
+                 - interconnectBay:                  3
+                   enclosureIndex:                   3
+                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc 
+                 - interconnectBay:                  4
+                   enclosureIndex:                   1
+                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas 
+                 - interconnectBay:                  4
+                   enclosureIndex:                   2
+                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas 
+                 - interconnectBay:                  4
+                   enclosureIndex:                   3
+                   logicalInterconnectGroupUri:      "{{var_lig_sas}}"  # lig name  lig_sas 
+                 - interconnectBay:                  6
+                   enclosureIndex:                   1
+                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc 
+                 - interconnectBay:                  6
+                   enclosureIndex:                   2
+                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc 
+                 - interconnectBay:                  6
+                   enclosureIndex:                   3
+                   logicalInterconnectGroupUri:      "{{var_lig_vc}}"  # lig name  lig_vc 
+       delegate_to: localhost
+
