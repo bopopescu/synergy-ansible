@@ -28,14 +28,15 @@ inputfilename = "wip_checkliste_gesamt.xlsx"
 exceltabgeneral = "Synergy-MGMT"
 exceltabsubnets = "Synergy-Subnets"
 exceltabnets = "Synergy-Networks"
+exceltabstorage = "Nimble"
 outputfolder = "output"
 
 ############################################################################
 ############## Only change Variables above this line #######################
 ############################################################################
 
-variables = {}
 variablesAll = []
+variablesNimbleAll = {}
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -49,53 +50,6 @@ os.chdir(dname)
 def columnCharToInt(c):
 	c = c.lower()
 	return string.ascii_lowercase.index(c)
-
-def fillVariables():
-	global variablesAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabgeneral)
-
-	columnNamesInt = columnCharToInt(columnNames)
-	
-	
-	for frame in variablesAll:
-		variables = {}
-		infocount = 0
-		foundGateway = False
-		for row in range(worksheet.nrows):
-			name = str(worksheet.cell_value(row,columnNamesInt))
-			
-			if(name==""):
-				continue
-				
-			if(name=="Infos"):
-				infocount = infocount + 1
-				continue
-
-			if(infocount!=1):
-				continue
-			
-			#found valid line
-			columnDataInt = frame["column"]
-			data = str(worksheet.cell_value(row,columnDataInt))
-			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-				continue
-			
-			if(data.find("#TODO") != -1):
-				pos = data.find("#TODO")
-				data = data[:pos-1]
-			
-			name = convertToAnsibleVariableName(name)			
-			if(name=="gateway"):
-				if(foundGateway):
-					continue
-				foundGateway = True
-			
-			variables[name] = data
-
-		frame["variables"] = variables
-
 
 def writeFileheader(outfile,configFileName):
 	outfile.write("###\n")
@@ -262,6 +216,72 @@ def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):
 
 		outfile.close()
 
+
+def findNibles():
+	global variablesNimbleAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabstorage)
+	
+
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Storage System Name"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
+					continue
+					
+				tmp = {"name":data,"column":col,"letter":data[0]}
+				variablesNimbleAll[data[0]] = tmp
+			break
+	
+	#ehemals fillvariablesnimble
+	for l in variablesNimbleAll:
+		nimble = variablesNimbleAll[l]
+		variables = {}
+		start = False
+		end = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Group name"):
+				start = True
+				
+			if(not start):
+				continue
+				
+			if(end):
+				continue
+				
+			if(name=="NTP (time) server IP address"):
+				end = True
+			
+			#found valid line
+			columnDataInt = nimble["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+
+			
+			variables[name] = data
+		nimble["variables"] = variables
+
 def findFrames():
 	global variablesAll
 	#open workbook and worksheet
@@ -286,6 +306,43 @@ def findFrames():
 				tmp = {"name":data,"column":col,"letter":data[0]}
 				variablesAll.append(tmp)
 			break
+	
+	#ehemals fillvariables
+	for frame in variablesAll:
+		variables = {}
+		infocount = 0
+		foundGateway = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Infos"):
+				infocount = infocount + 1
+				continue
+
+			if(infocount!=1):
+				continue
+			
+			#found valid line
+			columnDataInt = frame["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+			if(name=="gateway"):
+				if(foundGateway):
+					continue
+				foundGateway = True
+			
+			variables[name] = data
+		frame["variables"] = variables
 
 
 def writeConfigs():
@@ -920,13 +977,41 @@ def writeLogicatEnclosure(nr,filenamepart):
 		outfile.close()
 		
 		
+
+def writeStoragesystem(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		
+		#BEGIN
+		outfile.write('     - name: Create a Storage System "group2" '+"\n")
+		outfile.write('       oneview_storage_system:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         state: present'+"\n")
+		outfile.write('         data:'+"\n")
+		outfile.write('             credentials:'+"\n")
+		outfile.write('                 ip_hostname:               "'+variablesNimbleAll[frame["letter"]]["name"].lower()+'.'+variablesNimbleAll[frame["letter"]]["variables"]["domain_name"]+'"'+"\n")
+		outfile.write('                 username:                  "oneview"'+"\n")
+		outfile.write('                 password:                  "'+frame["variables"]["administrator_passwort"]+'"'+"\n")
+		outfile.write('             managedPools:                  ""'+"\n")
+		outfile.write('                   domain:                  "default"'+"\n")
+		outfile.write('                   name:                    ""'+"\n")
+		outfile.write('       delegate_to: localhost'+"\n")
+		outfile.write("\n")
+		#END
+		outfile.close()
+		
+		
 		
 		
 def main():
-	findFrames()
-	fillVariables()
+	findFrames()	
+	findNibles()
 	
 	print(variablesAll)
+	print()
+	print(variablesNimbleAll)
 	print()
 	
 	writeConfigs()
@@ -939,7 +1024,8 @@ def main():
 	writeLogicalInterconnectGroup("07","logicalinterconnectgroup") #https://github.com/HewlettPackard/oneview-ansible/blob/master/examples/synergy_environment_setup.yml
 	writeEnclosureGroup("08","enclosuregroup")
 	writeLogicatEnclosure("09","logicalenclosure")
-	#10 storagesystem
+	writeStoragesystem("10","storagesystem")
+
 	
 #start
 main()
