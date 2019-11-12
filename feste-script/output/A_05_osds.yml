@@ -1,7 +1,7 @@
 ###
 # created by python script convert.py
 # Felix Sterzelmaier, Concat AG
-# Created: 2019-11-12 11:23:02 CET(+0100)
+# Created: 2019-11-12 12:05:11 CET(+0100)
 # Dependencies: pip install --upgrade pip
 # Dependencies: pip install pyvmomi
 # Dependencies: pip3.6 install --upgrade pip
@@ -23,7 +23,7 @@
   tasks:
     - name: Ensure that the Deployment Server is present
       oneview_os_deployment_server:
-        config: "{{ config_file_path }}"
+        config: "{{ config }}"
         state: present
         data:
           name: "A-DCB-SYN0001_OSDS"

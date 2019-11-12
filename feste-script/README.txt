@@ -34,7 +34,7 @@ Run Linux:
 python3 ./convert.py
 or
 python ./convert.py
-eample:
+example:
 olant@olant-ansible:~/synergy-ansible/feste-script$ python3 ./convert.py
 
 Setup & Run Windows:

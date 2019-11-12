@@ -676,9 +676,7 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 		#END
 		
 		outfile.close()
-		
-	
-	
+
 
 def writeOSdeploymentServer(nr,filenamepart):
 	for frame in variablesAll:
@@ -690,7 +688,7 @@ def writeOSdeploymentServer(nr,filenamepart):
 		outfile.write('  tasks:'+"\n")
 		outfile.write('    - name: Ensure that the Deployment Server is present'+"\n")
 		outfile.write('      oneview_os_deployment_server:'+"\n")
-		outfile.write('        config: "{{ config_file_path }}"'+"\n")
+		outfile.write('        config: "{{ config }}"'+"\n")
 		outfile.write('        state: present'+"\n")
 		outfile.write('        data:'+"\n")
 		outfile.write('          name: "'+frame["variables"]["oneview_hostname"]+'_OSDS"'+"\n")		 				#CODE oneview_hostname+"_OSDS"
