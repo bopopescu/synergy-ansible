@@ -1,7 +1,7 @@
 ###
 # created by python script convert.py
 # Felix Sterzelmaier, Concat AG
-# Created: 2019-11-12 11:08:30 CET(+0100)
+# Created: 2019-11-12 11:12:52 CET(+0100)
 # Dependencies: pip install --upgrade pip
 # Dependencies: pip install pyvmomi
 # Dependencies: pip3.6 install --upgrade pip
@@ -54,11 +54,11 @@
        delegate_to: localhost
  
 #---------------------------- Logical Interconnect Group lig_vc
-     - name: Get uri for network b-oob-mgmt
+     - name: Get uri for network oob-mgmt
        oneview_ethernet_network_facts:
          config:         "{{ config }}"
-         name:           "b-oob-mgmt"
-     - set_fact:         var_b_oob_mgmt="{{ethernet_networks.uri}}"
+         name:           "oob-mgmt"
+     - set_fact:         var_oob_mgmt="{{ethernet_networks.uri}}"
 
      - name: Get uri for network ei-1300-48
        oneview_ethernet_network_facts:
@@ -119,12 +119,6 @@
          config:         "{{ config }}"
          name:           "vSphereVMotion"
      - set_fact:         var_vspherevmotion="{{ethernet_networks.uri}}"
-
-     - name: Get uri for network a-oob-mgmt
-       oneview_ethernet_network_facts:
-         config:         "{{ config }}"
-         name:           "a-oob-mgmt"
-     - set_fact:         var_a_oob_mgmt="{{ethernet_networks.uri}}"
 
      - name: Create logical Interconnect Group lig_vc
        oneview_logical_interconnect_group:
