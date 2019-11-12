@@ -852,6 +852,76 @@ def writeEnclosureGroup(nr,filenamepart):
 		#END
 		outfile.close()
 	   
+	   
+
+def writeLogicatEnclosure(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		
+		#BEGIN
+		outfile.write('#firmware_baseline_uri: "/rest/firmware-drivers/SPP_2018_11_20190205_for_HPE_Synergy_Z7550-96592"  #TODO später'+"\n")
+		outfile.write("\n")
+		outfile.write('	 - name: Gather information about Enclosure '+frame["letter"]+'-Master1'+"\n")
+		outfile.write('       oneview_enclosure_info:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         name: "'+frame["letter"]+'-Master1"'+"\n")
+		outfile.write('       no_log: true'+"\n")
+		outfile.write('       delegate_to: localhost'+"\n")
+		outfile.write('       register: result'+"\n")
+		outfile.write("\n")
+		outfile.write('     - set_fact:'+"\n")
+		outfile.write('         var_master1uri="{{ result.enclosures[0].uri }}"'+"\n")
+		outfile.write("\n")
+		outfile.write('	 - name: Gather information about Enclosure '+frame["letter"]+'-Master2'+"\n")
+		outfile.write('       oneview_enclosure_info:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         name: "'+frame["letter"]+'-Master2"'+"\n")
+		outfile.write('       no_log: true'+"\n")
+		outfile.write('       delegate_to: localhost'+"\n")
+		outfile.write('       register: result'+"\n")
+		outfile.write("\n")
+		outfile.write('     - set_fact:'+"\n")
+		outfile.write('         var_master2uri="{{ result.enclosures[0].uri }}"'+"\n")
+		outfile.write("\n")
+		outfile.write('	 - name: Gather information about Enclosure '+frame["letter"]+'-Slave'+"\n")
+		outfile.write('       oneview_enclosure_info:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         name: "'+frame["letter"]+'-Slave"'+"\n")
+		outfile.write('       no_log: true'+"\n")
+		outfile.write('       delegate_to: localhost'+"\n")
+		outfile.write('       register: result'+"\n")
+		outfile.write("\n")
+		outfile.write('     - set_fact:'+"\n")
+		outfile.write('         var_slaveuri="{{ result.enclosures[0].uri }}"'+"\n")
+		outfile.write("\n")
+		outfile.write('     - name: Gather facts about Enclosure Groups'+"\n")
+		outfile.write('       oneview_enclosure_group_facts:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         name: "Nublar_EG_3e"'+"\n") #CODE gleicher Name wie in enclosuregroup
+		outfile.write('       delegate_to: localhost'+"\n")
+		outfile.write('     - set_fact: var_enclosure_group_uri="{{ enclosure_groups.uri }}"'+"\n")
+		outfile.write("\n")
+		outfile.write('     - name: Create a Logical Enclosure (available only on HPE Synergy)'+"\n")
+		outfile.write('       oneview_logical_enclosure:'+"\n")
+		outfile.write('         config: "{{ config }}"'+"\n")
+		outfile.write('         state: present'+"\n")
+		outfile.write('         data:'+"\n")
+		outfile.write('             name: "ComputeBlock'+frame["letter"]+'"'+"\n")
+		outfile.write('             enclosureUris:'+"\n")
+		outfile.write('               - var_master1uri'+"\n")
+		outfile.write('               - var_master2uri'+"\n")
+		outfile.write('               - var_slaveuri'+"\n")
+		outfile.write('             enclosureGroupUri: "{{ var_enclosure_group_uri }}"'+"\n")
+		outfile.write('       delegate_to: localhost'+"\n")
+		outfile.write("\n")
+		#END
+		outfile.close()
+		
+		
+		
+		
 def main():
 	findFrames()
 	fillVariables()
@@ -868,6 +938,8 @@ def main():
 	writeNetworkset("06","networkset")
 	writeLogicalInterconnectGroup("07","logicalinterconnectgroup") #https://github.com/HewlettPackard/oneview-ansible/blob/master/examples/synergy_environment_setup.yml
 	writeEnclosureGroup("08","enclosuregroup")
+	writeLogicatEnclosure("09","logicalenclosure")
+	#10 storagesystem
 	
 #start
 main()
