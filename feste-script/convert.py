@@ -1067,10 +1067,34 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		outfile.write('        config: "{{ config }}"\n')
 		outfile.write('        state: extracted\n')
 		outfile.write('        data:\n')
-		outfile.write('          name: "'+frame["variables"]["artifact_bundle"]+'"\n')
+		outfile.write('          name: "'+frame["variables"]["artifact_bundle"].replace(".zip","")+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
 		
+		#END
+		outfile.close()
+		
+		
+		
+		
+def writeUploadGI(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		outfile.write('  tasks:\n')
+		outfile.write('    - name: Upload a Golden Image\n')
+		outfile.write('      image_streamer_golden_image:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "'+frame["variables"]["golden_image"].replace(".zip","")+'"\n')
+		outfile.write('          description: "Test"\n')
+		outfile.write('          localImageFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["golden_image"]+'"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
 		#END
 		outfile.close()
 		
@@ -1092,6 +1116,7 @@ def main():
 	writeAddFirmwareBundle("11","addfirmwarebundle")
 	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
+	writeUploadGI("14","uploadGI")
 
 	
 #start
