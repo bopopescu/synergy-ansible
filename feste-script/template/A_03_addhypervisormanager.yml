@@ -1,0 +1,82 @@
+###
+# created by python script convert.py
+# Felix Sterzelmaier, Concat AG
+# Created: 2019-11-13 16:40:04 CET(+0100)
+# Dependencies: pip install --upgrade pip
+# Dependencies: pip install pyvmomi
+# Run with: ansible-playbook -c local -i localhost, A_03_addhypervisormanager.yml
+# Run on: 10.10.5.239/olant-ansible as user olant in path /home/olant/synergy-ansible/feste-script/output
+# Before reading this playbook please read the README.txt and the sourcecode of convert.py first!
+###
+---
+- hosts: localhost
+  vars:
+    config: "{{ playbook_dir }}/A_oneview_config.json"
+  tasks:
+
+  - name: Login to API and retrieve AUTH-Token
+    uri:
+      validate_certs: no
+      headers:
+        X-Api-Version: 1000
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/login-sessions
+      method: POST
+      body_format: json
+      body:
+        authLoginDomain: "LOCAL"
+        password: "Concat123"
+        userName: "Administrator"
+        loginMsgAck: "true"
+    register: var_this
+
+  - set_fact: var_token='{{ var_this["json"]["sessionID"] }}'
+
+  - debug:
+      var: var_token
+
+  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)
+    uri:
+      validate_certs: no
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: 1000
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-managers
+      method: POST
+      body_format: json
+      body:
+        type: "HypervisorManagerV2"
+        name: "pda0400-vwa0001.ad.nublar.de"
+        username: "oneview@vsphere.local"
+        password: "Concat123!"
+        hypervisorType: "Vmware"
+        preferences:
+          type: Vmware
+          drsEnabled: true
+          haEnabled: true
+          distributedSwitchVersion: 6.6.0
+          distributedSwitchUsage: '0'
+          multiNicVMotion: true
+          virtualSwitchType: Distributed
+      status_code: 202
+    register: var_return
+
+  - debug:
+      var: var_return
+
+  - name: Taskinfo
+    uri:
+      validate_certs: no
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: 1000
+        Content-Type: application/json
+      url: '{{ var_return["location"] }}'
+      method: GET
+      status_code: 200
+    register: var_taskinfo
+
+  - debug:
+      var: var_taskinfo
+
