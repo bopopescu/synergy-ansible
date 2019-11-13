@@ -29,6 +29,7 @@ exceltabgeneral = "Synergy-MGMT"
 exceltabsubnets = "Synergy-Subnets"
 exceltabnets = "Synergy-Networks"
 exceltabstorage = "Nimble"
+exceltabhypervisor = "Synergy Integrationen"
 outputfolder = "output"
 
 ############################################################################
@@ -37,6 +38,7 @@ outputfolder = "output"
 
 variablesAll = []
 variablesNimbleAll = {}
+variablesHypervisorAll = {}
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -209,7 +211,47 @@ def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):
 		outfile.close()
 
 
-def findNibles():
+def findHypervisor():
+	global variablesHypervisorAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabhypervisor)
+
+	start = False
+	end = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,0))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Type"):
+			start = True
+			
+		if(not start):
+			continue
+			
+		if(end):
+			continue
+			
+		if(name=="High availability"):
+			end = True
+		
+		#found valid line
+		data = str(worksheet.cell_value(row,1))
+		if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+			continue
+		
+		if(data.find("#TODO") != -1):
+			pos = data.find("#TODO")
+			data = data[:pos-1]
+		
+		name = convertToAnsibleVariableName(name)			
+		variablesHypervisorAll[name] = data
+
+	print(variablesHypervisorAll)
+
+def findNimbles():
 	global variablesNimbleAll
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
@@ -1178,14 +1220,87 @@ def writeCreatedeploymentplan(nr,filenamepart):
 		#END
 		outfile.close()
 
-		
+
+
+
+
+def writeAddHypervisorManager(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/login-sessions\n')
+		outfile.write('      method: POST\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('        authLoginDomain: "LOCAL"\n')
+		outfile.write('        password: "'+frame["variables"]["administrator_passwort"]+'"\n')
+		outfile.write('        userName: "Administrator"\n')
+		outfile.write('        loginMsgAck: "true"\n')
+		outfile.write('    register: var_this\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_token\n')
+		outfile.write('\n')
+		outfile.write('  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/hypervisor-managers\n')
+		outfile.write('      method: POST\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('        type: "HypervisorManagerV2"\n')
+		outfile.write('        name: "'+variablesHypervisorAll["hostname"]+'"\n')
+		outfile.write('        username: "'+variablesHypervisorAll["username"]+'"\n')
+		outfile.write('        password: "'+variablesHypervisorAll["password"]+'"\n')
+		outfile.write('        hypervisorType: "Vmware"\n')
+		outfile.write('      status_code: 202\n')
+		outfile.write('    register: var_return\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_return\n')
+		outfile.write('\n')
+		outfile.write('  - name: Taskinfo\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: \'{{ var_return["location"] }}\'\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_taskinfo\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_taskinfo\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
+
+
 def main():
 	findFrames()	
-	findNibles()	
+	findNimbles()	
+	findHypervisor()	
 	writeConfigs()
 	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
-	####3 später: Register hypervisor manager
+	writeAddHypervisorManager("03","addhypervisormanager")
 	writeCreatenetwork("04","ethernetnetworkwithassociatedsubnet")
 	writeOSdeploymentServer("05","osds")
 	writeNetworkset("06","networkset")
@@ -1198,6 +1313,7 @@ def main():
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 	writeUploadGI("14","uploadGI")
 	writeCreatedeploymentplan("15","createdeploymentplan")
+	
 
 	
 #start
