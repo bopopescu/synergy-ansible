@@ -81,315 +81,313 @@
             - id: MinProcIdlePower
               value: NoCStates
           boot: 
-           complianceControl: Checked
-           manageBoot: true
-           order: 
-            - HardDisk
+            complianceControl: Checked
+            manageBoot: true
+            order: 
+             - HardDisk
           bootMode: 
-           complianceControl: Checked
-           manageMode: true
-           mode: UEFIOptimized
-           pxeBootPolicy: Auto
-           secureBoot: Unmanaged
+            complianceControl: Checked
+            manageMode: true
+            mode: UEFIOptimized
+            pxeBootPolicy: Auto
+            secureBoot: Unmanaged
           connectionSettings: 
-           complianceControl: Checked
-           connections: 
-           - boot: 
+            complianceControl: Checked
+            connections: 
+            -
+              boot: 
               bootVlanId: null
               bootVolumeSource: UserDefined
               ethernetBootType: iSCSI
               iscsi: 
-               chapLevel: None
-               initiatorNameSource: ProfileInitiatorName
-               secondBootTargetIp: ""
-              priority: Primary
+                chapLevel: None
+                initiatorNameSource: ProfileInitiatorName
+                secondBootTargetIp: ""
+                priority: Primary
               functionType: Ethernet
               id: 1
               ipv4: 
-               ipAddressSource: SubnetPool
-              isolatedTrunk: false
-              lagName: null
-              managed: true
+                ipAddressSource: SubnetPool
               name: "Deployment Network A"
               networkUri: "{{ deploy_network_uri }}"
               portId: "Mezz 3:1-a"
               requestedMbps: 2500
               requestedVFs: Auto
-             
-           boot: 
-              bootVlanId: null
-              bootVolumeSource: UserDefined
-              ethernetBootType: iSCSI
-              iscsi: 
-               chapLevel: None
-               initiatorNameSource: ProfileInitiatorName
-               secondBootTargetIp: ""
-              priority: Secondary
-              functionType: Ethernet
-              id: 2
-              ipv4: 
-               ipAddressSource: SubnetPool
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "Deployment Network B"
-              networkUri: "{{ deploy_network_uri }}"
-              portId: "Mezz 3:2-a"
-              requestedMbps: 2500
-              requestedVFs: Auto
-            
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 3
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "mgmt-1"
-              networkUri: "{{ management_network_uri }}"
-              portId: "Mezz 3:1-d"
-              requestedMbps: 2500
-              requestedVFs: 0
-             
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 4
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "mgmt-2"
-              networkUri: "{{ management_network_uri }}"
-              portId: "Mezz 3:2-d"
-              requestedMbps: 2500
-              requestedVFs: 0
-             
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 5
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "vmotion-1"
-              networkUri: "{{ vmotion_network_uri }}"
-              portId: "Mezz 3:1-e"
-              requestedMbps: 2500
-              requestedVFs: 0
-            
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 6
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "vmotion-2"
-              networkUri: "{{ vmotion_network_uri }}"
-              portId: "Mezz 3:2-e"
-              requestedMbps: 2500
-              requestedVFs: 0
-             
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 9
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "prod-1"
-              networkUri: "{{ prod_netset_uri }}"
-              portId: "Mezz 3:1-b"
-              requestedMbps: 2500
-              requestedVFs: 0
-             
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 10
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "prod-2"
-              networkUri: "{{ prod_netset_uri }}"
-              portId: "Mezz 3:2-b"
-              requestedMbps: 2500
-              requestedVFs: 0
-             
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 11
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "iSCSI-A"
-              networkUri: "{{ iscsi_a_network_uri }}"
-              portId: "Mezz 3:1-c"
-              requestedMbps: 2500
-              requestedVFs: 0
               
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 12
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "iSCSI-B"
-              networkUri: "{{ iscsi_b_network_uri }}"
-              portId: "Mezz 3:2-c"
-              requestedMbps: 2500
-              requestedVFs: 0
+            boot: 
+               bootVlanId: null
+               bootVolumeSource: UserDefined
+               ethernetBootType: iSCSI
+               iscsi: 
+                chapLevel: None
+                initiatorNameSource: ProfileInitiatorName
+                secondBootTargetIp: ""
+               priority: Secondary
+               functionType: Ethernet
+               id: 2
+               ipv4: 
+                ipAddressSource: SubnetPool
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "Deployment Network B"
+               networkUri: "{{ deploy_network_uri }}"
+               portId: "Mezz 3:2-a"
+               requestedMbps: 2500
+               requestedVFs: Auto
              
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 13
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "ft-1"
-              networkName: "{{ ft_network_uri }}"
-              portId: "Mezz 3:1-f"
-              requestedMbps: 2500
-              requestedVFs: 0
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 3
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "mgmt-1"
+               networkUri: "{{ management_network_uri }}"
+               portId: "Mezz 3:1-d"
+               requestedMbps: 2500
+               requestedVFs: 0
+              
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 4
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "mgmt-2"
+               networkUri: "{{ management_network_uri }}"
+               portId: "Mezz 3:2-d"
+               requestedMbps: 2500
+               requestedVFs: 0
+              
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 5
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "vmotion-1"
+               networkUri: "{{ vmotion_network_uri }}"
+               portId: "Mezz 3:1-e"
+               requestedMbps: 2500
+               requestedVFs: 0
              
-           boot: 
-              bootVlanId: null
-              priority: NotBootable
-              functionType: Ethernet
-              id: 14
-              isolatedTrunk: false
-              lagName: null
-              managed: true
-              name: "ft-2"
-              networkUri: "{{ ft_network_uri }}"
-              portId: "Mezz 3:2-f"
-              requestedMbps: 2500
-              requestedVFs: 0
-           manageConnections: true
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 6
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "vmotion-2"
+               networkUri: "{{ vmotion_network_uri }}"
+               portId: "Mezz 3:2-e"
+               requestedMbps: 2500
+               requestedVFs: 0
+              
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 9
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "prod-1"
+               networkUri: "{{ prod_netset_uri }}"
+               portId: "Mezz 3:1-b"
+               requestedMbps: 2500
+               requestedVFs: 0
+              
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 10
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "prod-2"
+               networkUri: "{{ prod_netset_uri }}"
+               portId: "Mezz 3:2-b"
+               requestedMbps: 2500
+               requestedVFs: 0
+              
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 11
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "iSCSI-A"
+               networkUri: "{{ iscsi_a_network_uri }}"
+               portId: "Mezz 3:1-c"
+               requestedMbps: 2500
+               requestedVFs: 0
+               
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 12
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "iSCSI-B"
+               networkUri: "{{ iscsi_b_network_uri }}"
+               portId: "Mezz 3:2-c"
+               requestedMbps: 2500
+               requestedVFs: 0
+              
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 13
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "ft-1"
+               networkName: "{{ ft_network_uri }}"
+               portId: "Mezz 3:1-f"
+               requestedMbps: 2500
+               requestedVFs: 0
+              
+            boot: 
+               bootVlanId: null
+               priority: NotBootable
+               functionType: Ethernet
+               id: 14
+               isolatedTrunk: false
+               lagName: null
+               managed: true
+               name: "ft-2"
+               networkUri: "{{ ft_network_uri }}"
+               portId: "Mezz 3:2-f"
+               requestedMbps: 2500
+               requestedVFs: 0
+            manageConnections: true
           description: "ESXi 6.7 Update 2 Build 13981272 mit NCM 6.1 und iSUT 2.4"
           firmware: 
-           complianceControl: Unchecked
-           firmwareActivationType: Immediate
-           firmwareBaselineUri: "{{ firmware_baseline_uri }}"
-           firmwareInstallType: FirmwareOnlyOfflineMode
-           forceInstallFirmware: false
-           manageFirmware: true
+            complianceControl: Unchecked
+            firmwareActivationType: Immediate
+            firmwareBaselineUri: "{{ firmware_baseline_uri }}"
+            firmwareInstallType: FirmwareOnlyOfflineMode
+            forceInstallFirmware: false
+            manageFirmware: true
           hideUnusedFlexNics: true
           iscsiInitiatorNameType: AutoGenerated
           localStorage: 
-           complianceControl: Unchecked
-           controllers: 
-           - deviceSlot: Embedded
-             driveWriteCache: Unmanaged
-             initialize: true
-             logicalDrives: 
-             - accelerator: Unmanaged
-               bootable: false
-               driveTechnology: null
-               name: "local-raid1"
-               numPhysicalDrives: 2
-               numSpareDrives: null
-               raidLevel: RAID1
-               sasLogicalJBODId: null
-             mode: Mixed
-             predictiveSpareRebuild: Unmanaged
-           sasLogicalJBODs: 
+            complianceControl: Unchecked
+            controllers: 
+            - deviceSlot: Embedded
+              driveWriteCache: Unmanaged
+              initialize: true
+              logicalDrives: 
+              - accelerator: Unmanaged
+                bootable: false
+                driveTechnology: null
+                name: "local-raid1"
+                numPhysicalDrives: 2
+                numSpareDrives: null
+                raidLevel: RAID1
+                sasLogicalJBODId: null
+              mode: Mixed
+              predictiveSpareRebuild: Unmanaged
+            sasLogicalJBODs: 
           macType: Virtual
           managementProcessor: 
-           complianceControl: Unchecked
-           manageMp: false
-           mpSettings: 
+            complianceControl: Unchecked
+            manageMp: false
+            mpSettings: 
           name: Nublar_ESXi
           osDeploymentSettings: 
-           complianceControl: Checked
-           osCustomAttributes: 
-           - constraints: null
-             name: "ManagementNIC.dns1"
-             type: dns
-             value: "{{ management_network_dns2 }}"
-           - constraints: null
-             name: "ManagementNIC.dns2"
-             type: dns
-             value: "{{ management_network_dns2 }}"
-           - constraints: null
-             name: "ManagementNIC2.networkuri"
-             type: null
-             value: "{{ management_network_uri }}"
-           - constraints: null
-             name: "ManagementNIC.vlanid"
-             type: integer
-             value: 0
-           - constraints: null
-             name: "ManagementNIC.netmask"
-             type: subnetmask
-             value: "{{ management_network_netmask }}"
-           - constraints: null
-             name: "ManagementNIC.connectionid"
-             type: null
-             value: 3
-           - constraints: null
-             name: "ManagementNIC.ipaddress"
-             type: ipv4
-             value: ""
-           - constraints: "{\"helpText\":\"\"}"
-             name: Hostname
-             type: hostname
-             value: ""
-           - constraints: null
-             name: "ManagementNIC2.constraint"
-             type: null
-             value: userspecified
-           - constraints: null
-             name: "ManagementNIC.gateway"
-             type: gateway
-             value: "{{ management_network_gateway }}"
-           - constraints: null
-             name: "ManagementNIC.constraint"
-             type: null
-             value: userspecified
-           - constraints: null
-             name: "ManagementNIC2.connectionid"
-             type: null
-             value: 4
-           - constraints: "{\"options\":[\"enabled\",\"disabled\"]}"
-             name: SSH
-             type: option
-             value: disabled
-           - constraints: null
-             name: Password
-             type: password
-             value: ""
-           - constraints: null
-             name: "ManagementNIC2.vlanid"
-             type: integer
-             value: 0
-           - constraints: null
-             name: "ManagementNIC.networkuri"
-             type: null
-             value: "{{ management_network_uri }}"
-           - constraints: "{\"helpText\":\"\"}"
-             name: DomainName
-             type: fqdn
-             value: "ad.nublar.de"
-           osDeploymentPlanUri: "{{ deployment_plan_uri }}"
+            complianceControl: Checked
+            osCustomAttributes: 
+            - constraints: null
+              name: "ManagementNIC.dns1"
+              type: dns
+              value: "{{ management_network_dns2 }}"
+            - constraints: null
+              name: "ManagementNIC.dns2"
+              type: dns
+              value: "{{ management_network_dns2 }}"
+            - constraints: null
+              name: "ManagementNIC2.networkuri"
+              type: null
+              value: "{{ management_network_uri }}"
+            - constraints: null
+              name: "ManagementNIC.vlanid"
+              type: integer
+              value: 0
+            - constraints: null
+              name: "ManagementNIC.netmask"
+              type: subnetmask
+              value: "{{ management_network_netmask }}"
+            - constraints: null
+              name: "ManagementNIC.connectionid"
+              type: null
+              value: 3
+            - constraints: null
+              name: "ManagementNIC.ipaddress"
+              type: ipv4
+              value: ""
+            - constraints: "{\"helpText\":\"\"}"
+              name: Hostname
+              type: hostname
+              value: ""
+            - constraints: null
+              name: "ManagementNIC2.constraint"
+              type: null
+              value: userspecified
+            - constraints: null
+              name: "ManagementNIC.gateway"
+              type: gateway
+              value: "{{ management_network_gateway }}"
+            - constraints: null
+              name: "ManagementNIC.constraint"
+              type: null
+              value: userspecified
+            - constraints: null
+              name: "ManagementNIC2.connectionid"
+              type: null
+              value: 4
+            - constraints: "{\"options\":[\"enabled\",\"disabled\"]}"
+              name: SSH
+              type: option
+              value: disabled
+            - constraints: null
+              name: Password
+              type: password
+              value: ""
+            - constraints: null
+              name: "ManagementNIC2.vlanid"
+              type: integer
+              value: 0
+            - constraints: null
+              name: "ManagementNIC.networkuri"
+              type: null
+              value: "{{ management_network_uri }}"
+            - constraints: "{\"helpText\":\"\"}"
+              name: DomainName
+              type: fqdn
+              value: "ad.nublar.de"
+            osDeploymentPlanUri: "{{ deployment_plan_uri }}"
           sanStorage: 
-           complianceControl: CheckedMinimum
-           hostOSType: "VMware (ESXi)"
-           manageSanStorage: true
-           sanSystemCredentials: 
-           volumeAttachments: 
+            complianceControl: CheckedMinimum
+            hostOSType: "VMware (ESXi)"
+            manageSanStorage: true
+            sanSystemCredentials: 
+            volumeAttachments: 
           serialNumberType: Virtual
           serverProfileDescription: Nublar_ESXi
 
