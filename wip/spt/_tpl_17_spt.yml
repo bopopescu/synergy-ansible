@@ -25,6 +25,14 @@
         config: "{{ config }}"
     - set_fact: firmware_baseline_uri="{{ firmware_drivers[0].uri }}"
 
+    - name: Find Network Set URI
+      oneview_network_set_facts:
+        config: "{{ config }}"
+    - set_fact: prod_netset_uri="{{ item.uri }}"
+      no_log: True
+      loop: "{{ network_sets }}"
+      when: item.name is match "set_Prod"
+
     - name: Gather network URIs
       oneview_ethernet_network_facts:
         config: "{{ config }}"
