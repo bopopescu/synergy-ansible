@@ -1,5 +1,7 @@
 @echo off
 
+cd C:\Users\felix.sterzelmaier\Desktop\workspaces\ITSG_ansible\02_synergy\git\synergy-ansible\feste-script
+
 echo.
 echo Setting Paths
 set pythonpath="C:\Users\felix.sterzelmaier\AppData\Local\Programs\Python\Python37\"

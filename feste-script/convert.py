@@ -52,26 +52,22 @@ def columnCharToInt(c):
 	return string.ascii_lowercase.index(c)
 
 def writeFileheader(outfile,configFileName):
+	filename = os.path.basename(outfile.name)
+	print("now: "+filename)
 	outfile.write("###\n")
 	outfile.write("# created by python script convert.py\n")
 	outfile.write("# Felix Sterzelmaier, Concat AG\n")
 	outfile.write("# Created: "+datetime.now(tzlocal.get_localzone()).strftime("%Y-%m-%d %H:%M:%S %Z(%z)")+"\n")
 	outfile.write("# Dependencies: pip install --upgrade pip\n")
 	outfile.write("# Dependencies: pip install pyvmomi\n")
-	outfile.write("# Dependencies: pip3.6 install --upgrade pip\n")
-	outfile.write("# Dependencies: /usr/local/bin/pip3.6 install pyvmomi\n")
-	outfile.write("# Test with: ansible-playbook (filename) --connection=local --check\n")
-	outfile.write("# Run with: ansible-playbook (filename) --connection=local\n")
-	outfile.write("# OR run with Python 2.7.5: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2'\n")
-	outfile.write("# OR run with Python 2.7.16: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python2.7'\n")
-	outfile.write("# OR run with Python 3.6.8: ansible-playbook (filename) --connection=local -e 'ansible_python_interpreter=/usr/bin/python3'\n")
+	outfile.write("# Run with: ansible-playbook -c local -i localhost, "+filename+"\n")
 	outfile.write("# Run on: 10.10.5.239/olant-ansible as user olant in path /home/olant/synergy-ansible/feste-script/output\n")
 	outfile.write("# Before reading this playbook please read the README.txt and the sourcecode of convert.py first!\n")
 	outfile.write("###\n")
 	outfile.write("---\n")
 	outfile.write("- hosts: localhost\n")
 	outfile.write("  vars:\n")
-	outfile.write("    config: \""+configFileName+"\"\n")
+	outfile.write('    config: "{{ playbook_dir }}/'+configFileName+'"\n')
 	outfile.write("  tasks:\n")
 	outfile.write("\n")
 		
@@ -116,7 +112,6 @@ def writeAddresspoolsubnet(nr,filenamepart):
 	for col in range(worksheet.ncols):
 		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
 		variablesHead.append(name)
-	print(variablesHead)
 	
 	for row in range(1,worksheet.nrows):
 		variablesOneSubnet = {}
@@ -136,10 +131,7 @@ def writeAddresspoolsubnet(nr,filenamepart):
 
 
 		
-def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):
-	print(variablesOneSubnet)
-	print()
-	
+def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):	
 	if(not "zone" in variablesOneSubnet):
 		print("variablesOneSubnet missing zone!")
 		return
@@ -378,7 +370,6 @@ def writeCreatenetwork(nr,filenamepart):
 	for col in range(worksheet.ncols):
 		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
 		variablesHead.append(name)
-	print(variablesHead)
 	
 	for row in range(1,worksheet.nrows):
 		variablesOneNet = {}
@@ -400,10 +391,7 @@ def writeCreatenetwork(nr,filenamepart):
 		writeCreatenetworkOne(nr,filenamepart,variablesOneNet)
 
 
-def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
-	print()
-	print(variablesOneNet)
-	
+def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):	
 	if(not "zone" in variablesOneNet):
 		print("variablesOneNet missing zone!")
 		return
@@ -479,7 +467,6 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 	for col in range(worksheet.ncols):
 		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
 		variablesHead.append(name)
-	print(variablesHead)
 	
 	for row in range(1,worksheet.nrows):
 		variablesOneNet = {}
@@ -498,7 +485,6 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 			
 			variablesOneNet[variablesHead[col]] = val
 		variables.append(variablesOneNet)
-		print(variables)
 	
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1012,17 +998,76 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.close()
 		
 		
+def writeAddFirmwareBundle(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		
+		#BEGIN
+		outfile.write('    - name: Ensure that a firmware bundle is present\n')
+		outfile.write('      oneview_firmware_bundle:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        file_path: "{{ playbook_dir }}/files/'+frame["variables"]["synergy_spp"]+'"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('    - debug: var=firmware_bundle\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
+		
+		
+def writeSetImagestreameripInConfig(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		outfile.write('    - name: Gather facts about all OS Deployment Servers\n')
+		outfile.write('      oneview_os_deployment_server_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact:\n')
+		outfile.write('        var_osds_ip="{{ os_deployment_servers[0].primaryIPV4 }}"\n')
+		outfile.write('\n')
+		outfile.write('    - name: load var from file\n')
+		outfile.write('      include_vars:\n')
+		outfile.write('        file: "{{ playbook_dir }}/'+config_prefx+frame["letter"]+config_sufix+'"\n')
+		outfile.write('        name: imported_var\n')
+		outfile.write('\n')
+		outfile.write('    - name: append more key/values\n')
+		outfile.write('      set_fact:\n')
+		outfile.write('        imported_var: "{{ imported_var | default([]) | combine({ \'image_streamer_ip\': var_osds_ip }) }}"\n')
+		outfile.write('\n')
+		outfile.write('    - name: write var to file\n')
+		outfile.write('      copy:\n')
+		outfile.write('        content: "{{ imported_var | to_nice_json }}"\n')
+		outfile.write('        dest: "{{ playbook_dir }}/'+config_prefx+frame["letter"]+config_sufix+'"\n')
+		outfile.write('\n')
+		outfile.close()
+		
+def writeUploadISartifacts(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		outfile.write('\n')
+		outfile.write('    - name: Upload an Artifact Bundle\n')
+		outfile.write('      image_streamer_artifact_bundle:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          localArtifactBundleFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["artifact_bundle"]+'"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
 		
 		
 def main():
 	findFrames()	
-	findNibles()
-	
-	print(variablesAll)
-	print()
-	print(variablesNimbleAll)
-	print()
-	
+	findNibles()	
 	writeConfigs()
 	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
@@ -1034,6 +1079,9 @@ def main():
 	writeEnclosureGroup("08","enclosuregroup")
 	writeLogicalEnclosure("09","logicalenclosure")
 	writeStoragesystem("10","storagesystem")
+	writeAddFirmwareBundle("11","addfirmwarebundle")
+	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
+	writeUploadISartifacts("13","uploadAndExtractIsArtifact")
 
 	
 #start
