@@ -91,9 +91,7 @@ def writeTimelocale(nr,name):
 		outfile.write("                 - "+frame["variables"]["gateway"]+"\n")
 		outfile.write("       delegate_to: localhost\n")
 		outfile.write("\n")
-		outfile.close()
-		
-		
+		outfile.close()		
 
 def writeAddresspoolsubnet(nr,filenamepart):
 	for frame in variablesAll:
@@ -102,13 +100,9 @@ def writeAddresspoolsubnet(nr,filenamepart):
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		outfile.close()
 		
-		
-		
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
 	worksheet = workbook.sheet_by_name(exceltabsubnets)
-	
-	
 	variablesHead = []
 	
 	for col in range(worksheet.ncols):
@@ -130,8 +124,6 @@ def writeAddresspoolsubnet(nr,filenamepart):
 			if(val!=""):
 				variablesOneSubnet[variablesHead[col]] = val
 		writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet)
-
-
 		
 def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):	
 	if(not "zone" in variablesOneSubnet):
@@ -248,8 +240,6 @@ def findHypervisor():
 		
 		name = convertToAnsibleVariableName(name)			
 		variablesHypervisorAll[name] = data
-
-	print(variablesHypervisorAll)
 
 def findNimbles():
 	global variablesNimbleAll
@@ -1132,7 +1122,7 @@ def writeUploadGI(nr,filenamepart):
 		outfile.write('        state: present\n')
 		outfile.write('        data:\n')
 		outfile.write('          name: "'+frame["variables"]["golden_image"].replace(".zip","")+'"\n')
-		outfile.write('          description: "Test"\n')
+		outfile.write('          description: "Release Build mit SUT und NCM"\n')
 		outfile.write('          localImageFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["golden_image"]+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
@@ -1268,6 +1258,14 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('        username: "'+variablesHypervisorAll["username"]+'"\n')
 		outfile.write('        password: "'+variablesHypervisorAll["password"]+'"\n')
 		outfile.write('        hypervisorType: "Vmware"\n')
+		outfile.write('      preferences:\n')
+		outfile.write('        type: "Vmware"\n')
+		outfile.write('#        VirtualSwitchType: "Distributed"\n')
+		outfile.write('#        DistributedSwitchUsage: "Generalnetworks"\n')
+		outfile.write('#        DistributedSwitchVersion: "6.6.0"\n')
+		outfile.write('#        MultiNicVMotion: "true"\n')
+		outfile.write('#        DrsEnabled: "true"\n')
+		outfile.write('#        HaEnabled: "true"\n')
 		outfile.write('      status_code: 202\n')
 		outfile.write('    register: var_return\n')
 		outfile.write('\n')
@@ -1291,6 +1289,8 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('\n')
 		#END
 		outfile.close()
+		
+
 
 
 def main():
