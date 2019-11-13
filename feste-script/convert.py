@@ -1132,7 +1132,7 @@ def writeUploadGI(nr,filenamepart):
 		outfile.write('        state: present\n')
 		outfile.write('        data:\n')
 		outfile.write('          name: "'+frame["variables"]["golden_image"].replace(".zip","")+'"\n')
-		outfile.write('          description: "Test"\n')
+		outfile.write('          description: "Release Build mit SUT und NCM"\n')
 		outfile.write('          localImageFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["golden_image"]+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
