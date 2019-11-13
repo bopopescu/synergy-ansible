@@ -1098,6 +1098,87 @@ def writeUploadGI(nr,filenamepart):
 		outfile.close()
 		
 		
+		
+
+
+def writeCreatedeploymentplan(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		outfile.write('    - name: Retrieve GoldenImage URI\n')
+		outfile.write('      image_streamer_golden_image_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        name: "'+frame["variables"]["golden_image"].replace(".zip","")+'"\n')
+		outfile.write('      register: result\n')
+		outfile.write('\n')
+		outfile.write('    - name: Create a Deployment Plan\n')
+		outfile.write('      image_streamer_deployment_plan:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          description: "Release Build mit SUT und NCM"\n')
+		outfile.write('          name: "nublarEsxiUpdated"\n')
+		outfile.write('          hpProvided: "false"\n')
+		outfile.write('          oeBuildPlanName: "HPE - ESXi 6.7 - deploy with multiple management NIC HA config - 2019-07-24"\n')
+		outfile.write('          goldenImageURI: "{{ golden_images[0].uri }}"\n')
+		outfile.write('          type: "OEDeploymentPlanV5"\n')
+		outfile.write('          customAttributes:\n')
+		outfile.write('            - name: ManagementNIC\n')
+		outfile.write('              constraints: "{\"ipv4static\":true,\"ipv4dhcp\":true,\"ipv4disable\":false,\"parameters\":[\"dns1\",\"dns2\",\"gateway\",\"ipaddress\",\"mac\",\"netmask\",\"vlanid\"]}"\n')
+		outfile.write('              description: "Configuring first NIC for Teaming in ESXi"\n')
+		outfile.write('              editable: true\n')
+		outfile.write('              id: "edc74bf8-d469-470f-a3e2-107e5c45e750"\n')
+		outfile.write('              type: nic\n')
+		outfile.write('              value: null\n')
+		outfile.write('              visible: true\n')
+		outfile.write('            - name: DomainName\n')
+		outfile.write('              constraints: "{\"helpText\":\"\"}"\n')
+		outfile.write('              description: "Fully Qualified Domain Name for ESXi host"\n')
+		outfile.write('              editable: true\n')
+		outfile.write('              id: "55704650-ce70-4f45-85f1-f3ff4dfeaf04"\n')
+		outfile.write('              type: fqdn\n')
+		outfile.write('              value: "ad.nublar.de"\n')
+		outfile.write('              visible: true\n')
+		outfile.write('            - name: SSH\n')
+		outfile.write('              constraints: "{\"options\":[\"enabled\",\"disabled\"]}"\n')
+		outfile.write('              description: "To enable/disable and start/stop SSH in ESXi"\n')
+		outfile.write('              editable: true\n')
+		outfile.write('              id: "99c9c40d-1f83-48a2-9367-1028ed55513f"\n')
+		outfile.write('              type: option\n')
+		outfile.write('              value: enabled\n')
+		outfile.write('              visible: true\n')
+		outfile.write('            - name: Hostname\n')
+		outfile.write('              constraints: "{\"helpText\":\"\"}"\n')
+		outfile.write('              description: "Hostname for VMware ESXi host. The hostname value can be defined manually or by using the tokens. This value must conform to valid hostname requirement defined by Internet standards."\n')
+		outfile.write('              editable: true\n')
+		outfile.write('              id: "8b11e853-e49a-49f0-9a0d-fbd80805758f"\n')
+		outfile.write('              type: hostname\n')
+		outfile.write('              value: ""\n')
+		outfile.write('              visible: true\n')
+		outfile.write('            - name: ManagementNIC2\n')
+		outfile.write('              constraints: "{\"ipv4static\":true,\"ipv4dhcp\":false,\"ipv4disable\":false,\"parameters\":[\"mac\",\"vlanid\"]}"\n')
+		outfile.write('              description: "Configuring second NIC for Teaming in ESXi"\n')
+		outfile.write('              editable: true\n')
+		outfile.write('              id: "46c75ab3-6da7-4a2b-a575-ef18dab2d458"\n')
+		outfile.write('              type: nic\n')
+		outfile.write('              value: null\n')
+		outfile.write('              visible: true\n')
+		outfile.write('            - name: Password\n')
+		outfile.write('              constraints: "{\"options\":[\"\"]}"\n')
+		outfile.write('              description: "Password value must meet password complexity and minimum length requirements defined for ESXi 5.x, ESXi 6.x appropriately."\n')
+		outfile.write('              editable: true\n')
+		outfile.write('              id: "e6709ead-e111-4b3e-8039-0cc97f2c0120"\n')
+		outfile.write('              type: password\n')
+		outfile.write('              value: ""\n')
+		outfile.write('              visible: true\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
+
+		
 def main():
 	findFrames()	
 	findNibles()	
@@ -1116,6 +1197,7 @@ def main():
 	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 	writeUploadGI("14","uploadGI")
+	writeCreatedeploymentplan("15","createdeploymentplan")
 
 	
 #start
