@@ -1045,7 +1045,7 @@ def writeSetImagestreameripInConfig(nr,filenamepart):
 		outfile.write('\n')
 		outfile.close()
 		
-def writeUploadISartifacts(nr,filenamepart):		
+def writeUploadAndExtractIsArtifact(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
@@ -1061,6 +1061,16 @@ def writeUploadISartifacts(nr,filenamepart):
 		outfile.write('          localArtifactBundleFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["artifact_bundle"]+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
+		
+		outfile.write('    - name: Extract an Artifact Bundle\n')
+		outfile.write('      image_streamer_artifact_bundle:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: extracted\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "'+frame["variables"]["artifact_bundle"]+'"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
+		
 		#END
 		outfile.close()
 		
@@ -1081,7 +1091,7 @@ def main():
 	writeStoragesystem("10","storagesystem")
 	writeAddFirmwareBundle("11","addfirmwarebundle")
 	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
-	writeUploadISartifacts("13","uploadAndExtractIsArtifact")
+	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 
 	
 #start
