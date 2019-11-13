@@ -1084,7 +1084,6 @@ def writeUploadGI(nr,filenamepart):
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 
 		#BEGIN
-		outfile.write('  tasks:\n')
 		outfile.write('    - name: Upload a Golden Image\n')
 		outfile.write('      image_streamer_golden_image:\n')
 		outfile.write('        config: "{{ config }}"\n')
