@@ -29,7 +29,8 @@ exceltabgeneral = "Synergy-MGMT"
 exceltabsubnets = "Synergy-Subnets"
 exceltabnets = "Synergy-Networks"
 exceltabstorage = "Nimble"
-exceltabhypervisor = "Synergy Integrationen"
+exceltabhypervisor = "Synergy-VMware"
+exceltabnimble = "Synergy-Nimble"
 outputfolder = "output"
 
 ############################################################################
