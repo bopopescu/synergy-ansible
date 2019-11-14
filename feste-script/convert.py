@@ -1291,7 +1291,58 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.close()
 		
 
+def writeRenameEnclosures(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 
+		#BEGIN
+		outfile.write('    - name: Gather facts about all Enclosures\n')
+		outfile.write('      oneview_enclosure_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_m1="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is none\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_m2="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_sl="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      when: item.applianceBays.0.model is none and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Master-1\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_m1.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Master1"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Master-2\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_m2.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Master2"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Slave\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_sl.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Slave"\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
 
 def main():
 	findFrames()	
@@ -1313,6 +1364,10 @@ def main():
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 	writeUploadGI("14","uploadGI")
 	writeCreatedeploymentplan("15","createdeploymentplan")
+	#16 Rename Server Hardware Types
+	#17 Create SP Template
+	#18 Add Hypervisor Cluster Profiles
+	writeRenameEnclosures("19","renameenclosures")
 	
 
 	
