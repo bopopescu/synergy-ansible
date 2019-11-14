@@ -468,7 +468,7 @@ def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
 			outfile.write("            name:                   \""+variablesOneNet["name"]+"\"\n")
 			outfile.write("            ethernetNetworkType:    "+variablesOneNet["type"]+"\n")
 			outfile.write("            type:    ethernet-networkV4\n")
-			outfile.write("            purpose:                Management\n")
+			outfile.write("            purpose:                \""+variablesOneNet["purpose"]+"\"\n")
 			outfile.write("            smartLink:              "+variablesOneNet["smartlink"].lower()+"\n")
 			outfile.write("            privateNetwork:         "+variablesOneNet["privatenetwork"].lower()+"\n")
 			outfile.write("            vlanId:                 "+variablesOneNet["vlanid"]+"\n")
