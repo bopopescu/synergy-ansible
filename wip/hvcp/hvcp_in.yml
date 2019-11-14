@@ -1,0 +1,96 @@
+---
+type: HypervisorClusterProfileV3
+description: "{{ hvcp_desc }}"
+hypervisorType: Vmware
+hypervisorClusterSettings:
+  type: Vmware
+  distributedSwitchVersion: 6.6.0
+  distributedSwitchUsage: '0'
+  drsEnabled: true
+  haEnabled: true
+  multiNicVMotion: true
+  virtualSwitchType: Distributed
+hypervisorHostProfileTemplate:
+  serverProfileTemplateUri: "{{ spt_uri }}"
+  deploymentPlan:
+    serverPassword: "{{ serverPassword }}"
+    deploymentCustomArgs: []
+  hostprefix: "{{ hvcp_name }}"
+  virtualSwitches:
+#CODE Loop_start über alle Standard-Switches
+  - name: "{{ vswitch_name }}"
+    virtualSwitchType: Standard
+    version: 
+    virtualSwitchPortGroups:
+    - name: "{{ portgroup_name }}"
+      networkUris:
+      - "{{ network_uri }}"
+      vlan: '0'
+      virtualSwitchPorts:
+      - virtualPortPurpose:
+        - {{ network_purpose }}
+        ipAddress: 
+        subnetMask: 
+        dhcp: true
+        action: NONE
+      action: NONE
+    virtualSwitchUplinks:
+    - name: Mezz 3:1-d #TODO
+      active: false
+      mac: 
+      vmnic: 
+      action: NONE
+    - name: Mezz 3:2-d #TODO
+      active: false
+      mac: 
+      vmnic: 
+      action: NONE
+    action: NONE
+    networkUris:
+    - "{{ network_uri }}"
+  #CODE Loop_end
+
+#CODE Loop_start über alle Distributed Switches
+  - name: "{{ vswitch_name }}"
+    virtualSwitchType: Distributed
+    version: 6.6.0
+    virtualSwitchPortGroups:
+	#CODE Loop_start über alle Netze im netSet
+    - name: "{{ network_name }}"
+      networkUris:
+      - "{{ network_uri }}
+      vlan: "{{ network_vlan }}"
+      virtualSwitchPorts: []
+      action: NONE
+	#CODE Loop_end
+    virtualSwitchUplinks:
+    - name: Mezz 3:1-f #TODO
+      active: false
+      mac: 
+      vmnic: 
+      action: NONE
+    - name: Mezz 3:2-f #TODO
+      active: false
+      mac: 
+      vmnic: 
+      action: NONE
+    action: NONE
+    networkUris:
+    - "{{ networkset_uri }}"
+#CODE Loop_end
+
+  hostConfigPolicy:
+    leaveHostInMaintenance: false
+    useHostnameToRegister: true
+  virtualSwitchConfigPolicy:
+    manageVirtualSwitches: true
+    configurePortGroups: true
+name: "{{ hvcp_name }}"
+mgmtIpSettingsOverride:
+  netmask: "{{ mgt_network_netmask }}"
+  gateway: "{{ mgt_network_gateway }}"
+  dnsDomain: "{{ mgt_network_domain }}"
+  primaryDns: "{{ mgt_network_dns1 }}"
+  secondaryDns: "{{ mgt_network_dns2 }}"
+hypervisorManagerUri: "{{ hvm_uri }}"
+path: "FFM- {{ zone }}" #CODE
