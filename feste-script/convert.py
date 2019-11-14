@@ -1691,8 +1691,8 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 		outfile.write('          name: "Nublar_ESXi"\n') #CODE
 		outfile.write('          description: "ESXi 6.7 Update 2 Build 13981272 mit NCM 6.1 und iSUT 2.4"\n') #CODE
 		outfile.write('          serverProfileDescription: ""\n')
-		outfile.write('          serverHardwareTypeName: "SY 480 Gen10 1"\n') #CODE
-		outfile.write('          enclosureGroupName: "Nublar_EG_3e"\n') #CODE
+		outfile.write('          serverHardwareTypeName: "HypervisorNode"\n')
+		outfile.write('          enclosureGroupName: "Nublar_EG_3e"\n')
 		outfile.write('          affinity: Bay\n')
 		outfile.write('          hideUnusedFlexNics: true\n')
 		outfile.write('          macType: Virtual\n')
