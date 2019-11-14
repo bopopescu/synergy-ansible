@@ -1688,8 +1688,8 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 		outfile.write('        state: present\n')
 		outfile.write('        data:\n')
 		outfile.write('          type: ServerProfileTemplateV6\n')
-		outfile.write('          name: "Nublar_ESXi"\n') #CODE
-		outfile.write('          description: "ESXi 6.7 Update 2 Build 13981272 mit NCM 6.1 und iSUT 2.4"\n') #CODE
+		outfile.write('          name: "Nublar_ESXi"\n')
+		outfile.write('          description: "ESXi 6.7 Update 2 Build 13981272 mit NCM 6.1 und iSUT 2.4"\n')
 		outfile.write('          serverProfileDescription: ""\n')
 		outfile.write('          serverHardwareTypeName: "HypervisorNode"\n')
 		outfile.write('          enclosureGroupName: "Nublar_EG_3e"\n')
