@@ -1343,7 +1343,74 @@ def writeRenameEnclosures(nr,filenamepart):
 		outfile.write('\n')
 		#END
 		outfile.close()
+		
+		
+		
+		
+def writeRenameServerHardwareTypes(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 
+		#BEGIN
+		outfile.write('    - name: Gather facts about all Server Hardware Types\n')
+		outfile.write('      oneview_server_hardware_type_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: var_one="{{ item }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{server_hardware_types}}"\n')
+		outfile.write('      when: item["adapters"]|length==1\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: var_two="{{ item }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{server_hardware_types}}"\n')
+		outfile.write('      when: item["adapters"]|length==2\n')
+		outfile.write('\n')
+		outfile.write('    - debug: msg="{{ var_one[\'name\'] }}"\n')
+		outfile.write('    - debug: msg="{{ var_two[\'name\'] }}"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename the Server Hardware Type\n')
+		outfile.write('      oneview_server_hardware_type:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ var_one[\'name\'] }}"\n')
+		outfile.write('          newName: "HypervisorNode"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename the Server Hardware Type\n')
+		outfile.write('      oneview_server_hardware_type:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ var_two[\'name\'] }}"\n')
+		outfile.write('          newName: "StorageNode"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
+		outfile.write('    - name: Gather facts about all Server Hardware Types\n')
+		outfile.write('      oneview_server_hardware_type_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: var_one="{{ item }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{server_hardware_types}}"\n')
+		outfile.write('      when: item["adapters"]|length==1\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: var_two="{{ item }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{server_hardware_types}}"\n')
+		outfile.write('      when: item["adapters"]|length==2\n')
+		outfile.write('\n')
+		outfile.write('    - debug: msg="{{ var_one[\'name\'] }}"\n')
+		outfile.write('    - debug: msg="{{ var_two[\'name\'] }}"\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
+		
 def main():
 	findFrames()	
 	findNimbles()	
@@ -1364,7 +1431,7 @@ def main():
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 	writeUploadGI("14","uploadGI")
 	writeCreatedeploymentplan("15","createdeploymentplan")
-	#16 Rename Server Hardware Types
+	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
 	#17 Create SP Template
 	#18 Add Hypervisor Cluster Profiles
 	writeRenameEnclosures("19","renameenclosures")
