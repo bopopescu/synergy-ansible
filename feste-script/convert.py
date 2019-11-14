@@ -204,6 +204,13 @@ def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):
 		outfile.close()
 
 
+
+
+
+
+			
+
+
 def findHypervisor():
 	global variablesHypervisorAll
 	#open workbook and worksheet
@@ -231,7 +238,10 @@ def findHypervisor():
 			end = True
 		
 		#found valid line
-		data = str(worksheet.cell_value(row,1))
+		data = worksheet.cell_value(row,1)
+		if(isinstance(data,float)):
+			data = str(int(data))
+		
 		if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
 			continue
 		
@@ -1018,13 +1028,13 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('         config: "{{ config }}"'+"\n")
 		outfile.write('         state: present'+"\n")
 		outfile.write('         data:'+"\n")
-		outfile.write('             credentials:'+"\n")
-		outfile.write('                 ip_hostname:               "'+variablesNimbleAll[frame["letter"]]["name"].lower()+'.'+variablesNimbleAll[frame["letter"]]["variables"]["domain_name"]+'"'+"\n")
-		outfile.write('                 username:                  "oneview"'+"\n")
-		outfile.write('                 password:                  "'+frame["variables"]["administrator_passwort"]+'"'+"\n")
-		outfile.write('             managedPools:                  ""'+"\n")
-		outfile.write('                   domain:                  "default"'+"\n")
-		outfile.write('                   name:                    ""'+"\n")
+		outfile.write('           credentials:'+"\n")
+		outfile.write('             ip_hostname:               "'+variablesNimbleAll[frame["letter"]]["name"].lower()+'.'+variablesNimbleAll[frame["letter"]]["variables"]["domain_name"]+'"'+"\n")
+		outfile.write('             username:                  "oneview"'+"\n")
+		outfile.write('             password:                  "'+frame["variables"]["administrator_passwort"]+'"'+"\n")
+		outfile.write('           managedPools:                  ""'+"\n")
+		outfile.write('             domain:                  "default"'+"\n")
+		outfile.write('             name:                    ""'+"\n")
 		outfile.write('       delegate_to: localhost'+"\n")
 		outfile.write("\n")
 		#END
@@ -1266,12 +1276,12 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('        hypervisorType: "Vmware"\n')
 		outfile.write('        preferences:\n')
 		outfile.write('          type: "Vmware"\n')
-		outfile.write('          drsEnabled: true\n')
-		outfile.write('          haEnabled: true\n')
-		outfile.write('          distributedSwitchVersion: 6.6.0\n')
-		outfile.write('          distributedSwitchUsage: "0"\n')
-		outfile.write('          multiNicVMotion: true\n')
-		outfile.write('          virtualSwitchType: Distributed\n')
+		outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
+		outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
+		outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
+		outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
+		outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["milti_nic_vmotion"]=="Enabled") else "false")+'\n')
+		outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
 		outfile.write('      status_code: 202\n')
 		outfile.write('    register: var_return\n')
 		outfile.write('\n')
@@ -1417,31 +1427,139 @@ def writeRenameServerHardwareTypes(nr,filenamepart):
 		#END
 		outfile.close()
 		
+		
+
+def writeAddHypervisorClusterProfile(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		outfile.write('        type: HypervisorClusterProfileV3\n')
+		outfile.write('        description: "{{ hvcp_desc }}"\n')
+		outfile.write('        hypervisorType: Vmware\n')
+		outfile.write('        hypervisorClusterSettings:\n')
+		outfile.write('          type: Vmware\n')
+		outfile.write('          distributedSwitchVersion: 6.6.0\n')
+		outfile.write('          distributedSwitchUsage: "0"\n')
+		outfile.write('          drsEnabled: true\n')
+		outfile.write('          haEnabled: true\n')
+		outfile.write('          multiNicVMotion: true\n')
+		outfile.write('          virtualSwitchType: Distributed\n')
+		outfile.write('        hypervisorHostProfileTemplate:\n')
+		outfile.write('          serverProfileTemplateUri: "{{ spt_uri }}"\n')
+		outfile.write('          deploymentPlan:\n')
+		outfile.write('            serverPassword: "{{ serverPassword }}"\n')
+		outfile.write('            deploymentCustomArgs: []\n')
+		outfile.write('          hostprefix: "{{ hvcp_name }}"\n')
+		outfile.write('          virtualSwitches:\n')
+		outfile.write('\n')        #CODE Loop_start über alle Standard-Switches
+		outfile.write('          - name: "{{ vswitch_name }}"\n')
+		outfile.write('            virtualSwitchType: Standard\n')
+		outfile.write('            version: \n')
+		outfile.write('            virtualSwitchPortGroups:\n')
+		outfile.write('            - name: "{{ portgroup_name }}"\n')
+		outfile.write('              networkUris:\n')
+		outfile.write('              - "{{ network_uri }}"\n')
+		outfile.write('              vlan: "0"\n')
+		outfile.write('              virtualSwitchPorts:\n')
+		outfile.write('              - virtualPortPurpose:\n')
+		outfile.write('                - {{ network_purpose }}\n')
+		outfile.write('                ipAddress: \n')
+		outfile.write('                subnetMask: \n')
+		outfile.write('                dhcp: true\n')
+		outfile.write('                action: NONE\n')
+		outfile.write('              action: NONE\n')
+		outfile.write('            virtualSwitchUplinks:\n')
+		outfile.write('            - name: Mezz 3:1-d\n') #CODE aus Server Profile Template
+		outfile.write('              active: false\n')
+		outfile.write('              mac: \n')
+		outfile.write('              vmnic: \n')
+		outfile.write('              action: NONE\n')
+		outfile.write('            - name: Mezz 3:2-d\n') #CODE aus Server Profile Template
+		outfile.write('              active: false\n')
+		outfile.write('              mac: \n')
+		outfile.write('              vmnic: \n')
+		outfile.write('              action: NONE\n')
+		outfile.write('            action: NONE\n')
+		outfile.write('            networkUris:\n')
+		outfile.write('            - "{{ network_uri }}"\n')
+		outfile.write('\n')          #CODE Loop_end      
+		outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
+		outfile.write('          - name: "{{ vswitch_name }}"\n')
+		outfile.write('            virtualSwitchType: Distributed\n')
+		outfile.write('            version: 6.6.0\n')
+		outfile.write('            virtualSwitchPortGroups:\n')
+		outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet
+		outfile.write('            - name: "{{ network_name }}"\n')
+		outfile.write('              networkUris:\n')
+		outfile.write('              - "{{ network_uri }}\n')
+		outfile.write('              vlan: "{{ network_vlan }}"\n')
+		outfile.write('              virtualSwitchPorts: []\n')
+		outfile.write('              action: NONE\n')
+		outfile.write('\n')        	#CODE Loop_end
+		outfile.write('            virtualSwitchUplinks:\n')
+		outfile.write('            - name: Mezz 3:1-f\n') #CODE aus Server Profile Template
+		outfile.write('              active: false\n')
+		outfile.write('              mac: \n')
+		outfile.write('              vmnic: \n')
+		outfile.write('              action: NONE\n')
+		outfile.write('            - name: Mezz 3:2-f\n') #CODE aus Server Profile Template
+		outfile.write('              active: false\n')
+		outfile.write('              mac: \n')
+		outfile.write('              vmnic: \n')
+		outfile.write('              action: NONE\n')
+		outfile.write('            action: NONE\n')
+		outfile.write('            networkUris:\n')
+		outfile.write('            - "{{ networkset_uri }}"\n')
+		outfile.write('\n')        #CODE Loop_end
+		outfile.write('          hostConfigPolicy:\n')
+		outfile.write('            leaveHostInMaintenance: false\n')
+		outfile.write('            useHostnameToRegister: true\n')
+		outfile.write('          virtualSwitchConfigPolicy:\n')
+		outfile.write('            manageVirtualSwitches: true\n')
+		outfile.write('            configurePortGroups: true\n')
+		outfile.write('        name: "{{ hvcp_name }}"\n')
+		outfile.write('        mgmtIpSettingsOverride:\n')
+		outfile.write('          netmask: "{{ mgt_network_netmask }}"\n')
+		outfile.write('          gateway: "{{ mgt_network_gateway }}"\n')
+		outfile.write('          dnsDomain: "{{ mgt_network_domain }}"\n')
+		outfile.write('          primaryDns: "{{ mgt_network_dns1 }}"\n')
+		outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')
+		outfile.write('        hypervisorManagerUri: "{{ hvm_uri }}"\n')
+		outfile.write('        path: "FFM- {{ zone }}"\n') #CODE
+		outfile.write('\n')
+		#END
+		outfile.close()
+
+		
 def main():
 	findFrames()	
 	findNimbles()	
 	findHypervisor()	
 	writeConfigs()
-	writeTimelocale("01","ntp")
+	writeTimelocale("01","ntp") #todo: test
 	writeAddresspoolsubnet("02","subnetrange")
-	writeAddHypervisorManager("03","addhypervisormanager")
+	writeAddHypervisorManager("03","addhypervisormanager") #todo: test
 	writeCreatenetwork("04","ethernetnetworkwithassociatedsubnet")
 	writeOSdeploymentServer("05","osds")
 	writeNetworkset("06","networkset")
 	writeLogicalInterconnectGroup("07","logicalinterconnectgroup") #https://github.com/HewlettPackard/oneview-ansible/blob/master/examples/synergy_environment_setup.yml
 	writeEnclosureGroup("08","enclosuregroup")
 	writeLogicalEnclosure("09","logicalenclosure")
-	writeStoragesystem("10","storagesystem")
+	writeStoragesystem("10","storagesystem") #todo umsetzung via RESR-API
 	writeAddFirmwareBundle("11","addfirmwarebundle")
 	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 	writeUploadGI("14","uploadGI")
 	writeCreatedeploymentplan("15","createdeploymentplan")
-	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
+	writeRenameServerHardwareTypes("16","renameserverhardwaretypes") #todo: test
 	#17 Create SP Template
-	#18 Add Hypervisor Cluster Profiles
-	writeRenameEnclosures("19","renameenclosures")
-	
+	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo umsetzung via RESR-API
+	writeRenameEnclosures("19","renameenclosures") #todo: test
+	#20 Create Volume Template
+	#21 Create Volumes
 
 	
 #start
