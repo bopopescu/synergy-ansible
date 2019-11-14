@@ -1,0 +1,62 @@
+###
+# Copyright (2016-2017) Hewlett Packard Enterprise Development LP
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+###
+---
+- hosts: all
+  vars:
+    config: "{{ playbook_dir }}/oneview_config.json"
+    storage_system_name:  a-dcb-sto0100.ad.nublar.de
+    storage_system_user:  oneview
+    storage_system_pass:  Concat123
+    storage_pool_name:    default
+    iscsi_a_network_name: iSCSI-A
+    iscsi_b_network_name: iSCSI-B
+  tasks:
+    - name: Find iSCSI-A Network Name and URI
+      oneview_ethernet_network_facts:
+        config: "{{ config }}"
+        name: "{{ iscsi_a_network_name }}"
+    - set_fact: iscsi_a_network_uri="{{ ethernet_networks.uri }}"
+
+    - name: Find iSCSI-B Network Name and URI
+      oneview_ethernet_network_facts:
+        config: "{{ config }}"
+        name: "{{ iscsi_b_network_name }}"
+    - set_fact: iscsi_b_network_uri="{{ ethernet_networks.uri }}"
+
+    - name: Add Nimble Storage System
+      oneview_storage_system:
+        config: "{{ config }}"
+        state: present
+        data:
+          hostname: '{{ storage_system_name }}'
+          family: Nimble
+          credentials:
+            username: '{{ storage_system_user }}'
+            password: '{{ storage_system_pass }}'
+      register: result
+    - set_fact: storage_system_uri="{{ result.ansible_facts.storage_system.uri }}"
+
+    - name: Manage Nimble Storage Pool
+      oneview_storage_pool:
+        config: "{{ config }}"
+        state: present
+        data:
+           storageSystemUri: '{{ storage_system_uri }}'
+           name: '{{ storage_pool_name }}'
+           isManaged: true
+
+
+
