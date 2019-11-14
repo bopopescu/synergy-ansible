@@ -1213,27 +1213,20 @@ def writeCreatedeploymentplan(nr,filenamepart):
 
 
 
-
-def writeAddHypervisorManager(nr,filenamepart):		
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-
-		#BEGIN
+def writeFilepartRESTAPILogin(outfile,host,username,password):
 		outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
 		outfile.write('    uri:\n')
 		outfile.write('      validate_certs: no\n')
 		outfile.write('      headers:\n')
 		outfile.write('        X-Api-Version: 1000\n')
 		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/login-sessions\n')
+		outfile.write('      url: https://'+host+'/rest/login-sessions\n')
 		outfile.write('      method: POST\n')
 		outfile.write('      body_format: json\n')
 		outfile.write('      body:\n')
 		outfile.write('        authLoginDomain: "LOCAL"\n')
-		outfile.write('        password: "'+frame["variables"]["administrator_passwort"]+'"\n')
-		outfile.write('        userName: "Administrator"\n')
+		outfile.write('        password: "'+password+'"\n')
+		outfile.write('        userName: "'+username+'"\n')
 		outfile.write('        loginMsgAck: "true"\n')
 		outfile.write('    register: var_this\n')
 		outfile.write('\n')
@@ -1242,6 +1235,18 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('  - debug:\n')
 		outfile.write('      var: var_token\n')
 		outfile.write('\n')
+
+
+
+def writeAddHypervisorManager(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		writeFilepartRESTAPILogin(outfile,frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"],"Administrator",frame["variables"]["administrator_passwort"])
+		
+		
+		#BEGIN
 		outfile.write('  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)\n')
 		outfile.write('    uri:\n')
 		outfile.write('      validate_certs: no\n')
