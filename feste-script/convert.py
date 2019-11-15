@@ -370,27 +370,27 @@ def writeFileheader(outfile,configFileName):
 		
 
 def writeFilepartRESTAPILogin(outfile,host,username,password):
-		outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+host+'/rest/login-sessions\n')
-		outfile.write('      method: POST\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('        authLoginDomain: "'+restDomain+'"\n')
-		outfile.write('        password: "'+password+'"\n')
-		outfile.write('        userName: "'+username+'"\n')
-		outfile.write('        loginMsgAck: "true"\n')
-		outfile.write('    register: var_this\n')
-		outfile.write('\n')
-		outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_token\n')
-		outfile.write('\n')
+	outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
+	outfile.write('    uri:\n')
+	outfile.write('      validate_certs: yes\n')
+	outfile.write('      headers:\n')
+	outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+	outfile.write('        Content-Type: application/json\n')
+	outfile.write('      url: https://'+host+'/rest/login-sessions\n')
+	outfile.write('      method: POST\n')
+	outfile.write('      body_format: json\n')
+	outfile.write('      body:\n')
+	outfile.write('        authLoginDomain: "'+restDomain+'"\n')
+	outfile.write('        password: "'+password+'"\n')
+	outfile.write('        userName: "'+username+'"\n')
+	outfile.write('        loginMsgAck: "true"\n')
+	outfile.write('    register: var_this\n')
+	outfile.write('\n')
+	outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
+	outfile.write('\n')
+	outfile.write('  - debug:\n')
+	outfile.write('      var: var_token\n')
+	outfile.write('\n')
 
 
 
@@ -542,7 +542,7 @@ def writeAddHypervisorManager(nr,filenamepart):
 		#BEGIN
 		outfile.write('  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)\n')
 		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
+		outfile.write('      validate_certs: yes\n')
 		outfile.write('      headers:\n')
 		outfile.write('        Auth: "{{ var_token }}"\n')
 		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
@@ -572,7 +572,7 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('\n')
 		outfile.write('  - name: Taskinfo\n')
 		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
+		outfile.write('      validate_certs: yes\n')
 		outfile.write('      headers:\n')
 		outfile.write('        Auth: "{{ var_token }}"\n')
 		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
@@ -683,8 +683,6 @@ def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
 			outfile.write("\n")
 		
 		outfile.close()
-		
-
 
 #05
 def writeOSdeploymentServer(nr,filenamepart):
@@ -694,7 +692,6 @@ def writeOSdeploymentServer(nr,filenamepart):
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		
 		#BEGIN
-		outfile.write('  tasks:'+"\n")
 		outfile.write('    - name: Ensure that the Deployment Server is present'+"\n")
 		outfile.write('      oneview_os_deployment_server:'+"\n")
 		outfile.write('        config: "{{ config }}"'+"\n")
@@ -709,11 +706,6 @@ def writeOSdeploymentServer(nr,filenamepart):
 		outfile.write("\n")
 		#END
 		outfile.close()
-		
-		
-
-
-
 
 
 #06
@@ -777,9 +769,6 @@ def writeNetworkset(nr,filenamepart):
 			outfile.write("\n")
 		#END
 		outfile.close()
-
-
-
 
 
 #07
@@ -1935,7 +1924,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		#BEGIN get Facts
 		outfile.write('  - name: get Hypervisor manager uri\n')
 		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
+		outfile.write('      validate_certs: yes\n')
 		outfile.write('      headers:\n')
 		outfile.write('        Auth: "{{ var_token }}"\n')
 		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
@@ -1948,15 +1937,21 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('    register: var_hypervisor_managers\n')
 		outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
 		outfile.write('\n')
-		outfile.write('    - name: Gather Server Profile Template Nublar_ESXi uri\n')
-		outfile.write('      oneview_server_profile_template_facts:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('        name: "Nublar_ESXi"\n')
-		outfile.write('      delegate_to: localhost\n')
+		outfile.write('  - name: Gather Server Profile Template Nublar_ESXi uri\n')
+		outfile.write('    oneview_server_profile_template_facts:\n')
+		outfile.write('      config: "{{ config }}"\n')
+		outfile.write('      name: "Nublar_ESXi"\n')
+		outfile.write('    delegate_to: localhost\n')
+		outfile.write('  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
 		outfile.write('\n')
-		outfile.write('    - debug: var=server_profile_templates[0]["name"]\n')
-		outfile.write('    - debug: var=server_profile_templates[0]["uri"]\n')
-		outfile.write('    - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
+		outfile.write('  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: var_mylist={{[]}}\n')
+		outfile.write('  - set_fact: var_mylist="{{var_mylist + [item[\'networkUri\']]}}"\n')
+		outfile.write('    when: item[\'networkUri\'] not in var_mylist\n')
+		outfile.write('    with_items: \'{{ server_profile_templates[0]["connectionSettings"]["connections"] }}\'\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - debug: var=var_mylist\n')
 		outfile.write('\n')
 		
 		for cluster in varaiblesClustersAll:
@@ -1966,7 +1961,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			#BEGIN SET
 			outfile.write('  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)\n')
 			outfile.write('    uri:\n')
-			outfile.write('      validate_certs: no\n')
+			outfile.write('      validate_certs: yes\n')
 			outfile.write('      headers:\n')
 			outfile.write('        Auth: "{{ var_token }}"\n')
 			outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
@@ -1986,7 +1981,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('          gateway: "{{ mgt_network_gateway }}"\n')
 			outfile.write('          dnsDomain: "{{ mgt_network_domain }}"\n')
 			outfile.write('          primaryDns: "{{ mgt_network_dns1 }}"\n')
-			outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')		
+			outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')
 			outfile.write('        hypervisorClusterSettings:\n')
 			outfile.write('          type: "Vmware"\n')
 			outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
@@ -2013,9 +2008,9 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			
 			
 			
-			
+			#"connectionSettings" mit networkUri=ethernet-networks, alle finden mit gleicher uri-id
 			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches
-			outfile.write('          - name: "{{ vswitch_name }}"\n')
+			outfile.write('          - name: "{{ vswitch_name }}"\n') #von uri name holen
 			outfile.write('            virtualSwitchType: Standard\n')
 			outfile.write('            version: \n')
 			outfile.write('            virtualSwitchPortGroups:\n')
@@ -2052,14 +2047,14 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			
 			
 			
-			
+			#"connectionSettings" mit networkUri)=network set
 			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
-			outfile.write('          - name: "{{ vswitch_name }}"\n')
+			outfile.write('          - name: "{{ vswitch_name }}"\n') #Synergy-VMware Z66ff
 			outfile.write('            virtualSwitchType: Distributed\n')
 			outfile.write('            version: 6.6.0\n')
 			outfile.write('            virtualSwitchPortGroups:\n')
-			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet
-			outfile.write('            - name: "{{ network_name }}"\n')
+			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet ||| abfragen: "/rest/network-sets/a6aa4b3e-1671-4f8f-b91b-62438c8c3762
+			outfile.write('            - name: "{{ network_name }}"\n') 
 			outfile.write('              networkUris:\n')
 			outfile.write('              - "{{ network_uri }}\n')
 			outfile.write('              vlan: "{{ network_vlan }}"\n')
@@ -2345,6 +2340,53 @@ def writeCreateVolumeTemplate(nr,filenamepart):
 		#END
 		outfile.close()
 		
+#21
+def writeCreateVolumes(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+				
+		#BEGIN
+		outfile.write('    - name: Find Storage Volume Template by name\n')
+		outfile.write('      oneview_storage_volume_template_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        name: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["template_name"]+'"\n')
+		outfile.write('    - set_fact: storage_volume_template_uri="{{ storage_volume_templates.0.uri }}"\n')
+		outfile.write('    - set_fact: storage_pool_uri="{{ storage_volume_templates.0.storagePoolUri }}"\n')
+		outfile.write('    - set_fact: performance_policy="{{ storage_volume_templates.0.properties.performancePolicy.default }}"\n')
+		outfile.write('\n')
+		
+		storageVolumenames = variablesSynergyNimbleAll[frame["letter"]]["variables"]["storage_volume_names"].split(",")
+		for storagevolumename in storageVolumenames:
+			outfile.write('    - name: Create Volume '+storagevolumename+' based on a Storage Volume Template\n')
+			outfile.write('      oneview_volume:\n')
+			outfile.write('        config: "{{ config }}"\n')
+			outfile.write('        state: present\n')
+			outfile.write('        data:\n')
+			outfile.write('          properties:\n')
+			outfile.write('            name: "'+storagevolumename+'"\n')
+			outfile.write('            description: ""\n')
+			outfile.write('            storagePool: "{{ storage_pool_uri }}"\n')
+			outfile.write('            size: 8796093022208\n')
+			outfile.write('            provisioningType: Thin\n')
+			outfile.write('            isShareable: true\n')
+			outfile.write('            templateVersion: "1.0"\n')
+			outfile.write('            isDeduplicated: true\n')
+			outfile.write('            performancePolicy: "{{ performance_policy }}"\n')
+			outfile.write('           folder:\n')
+			outfile.write('            volumeSet:\n')
+			outfile.write('            isEncrypted: false\n')
+			outfile.write('            isPinned: false\n')
+			outfile.write('            iopsLimit:\n')
+			outfile.write('            dataTransferLimit:\n')
+			outfile.write('          templateUri: "{{ storage_volume_template_uri }}"\n')
+			outfile.write('          isPermanent: true\n')
+			outfile.write('          initialScopeUris: \n')
+			outfile.write('\n')
+		#END
+		outfile.close()
+		
 		
 ############################################################################
 ############## Main Function ###############################################
@@ -2373,10 +2415,10 @@ def main():
 	writeCreatedeploymentplan("15","createdeploymentplan")
 	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
 	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
-	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo Umsetzung via REST-API
+	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo implement
 	writeRenameEnclosures("19","renameenclosures")
-	writeCreateVolumeTemplate("20","createvolumetemplate") #implement
-	#21 Create Volumes
+	writeCreateVolumeTemplate("20","createvolumetemplate")
+	writeCreateVolumes("21","createvolumes")
 	#22	Add Hypervisors
 	
 #start
