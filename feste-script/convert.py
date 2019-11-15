@@ -2026,7 +2026,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('              vlan: "0"\n')
 			outfile.write('              virtualSwitchPorts:\n')
 			outfile.write('              - virtualPortPurpose:\n')
-			outfile.write('                - {{ network_purpose }}\n')
+			outfile.write('                - "{{ network_purpose }}"\n')
 			outfile.write('                ipAddress: \n')
 			outfile.write('                subnetMask: \n')
 			outfile.write('                dhcp: true\n')
@@ -2062,7 +2062,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet ||| abfragen: "/rest/network-sets/a6aa4b3e-1671-4f8f-b91b-62438c8c3762
 			outfile.write('            - name: "{{ network_name }}"\n') 
 			outfile.write('              networkUris:\n')
-			outfile.write('              - "{{ network_uri }}\n')
+			outfile.write('              - "{{ network_uri }}"\n')
 			outfile.write('              vlan: "{{ network_vlan }}"\n')
 			outfile.write('              virtualSwitchPorts: []\n')
 			outfile.write('              action: NONE\n')
