@@ -1262,7 +1262,7 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('\n')			
 		outfile.write('  - name: Populate Nimble Ports with Network URIs\n')
 		outfile.write('    set_fact:\n')
-		outfile.write('      nimble_with_ports: "{{ nimble.json'+extensionstring+' }}"\n')
+		outfile.write('      nimble_with_ports: \'{{ nimble.json'+extensionstring+' }}\'\n')
 		outfile.write('\n')
 		outfile.write('  - name: Update Nimble System \n')
 		outfile.write('    uri:\n')
