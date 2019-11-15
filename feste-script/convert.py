@@ -1943,13 +1943,22 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('\n')
 		outfile.write('  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]\n')
 		outfile.write('\n')
-		outfile.write('  - set_fact: var_mylist={{[]}}\n')
-		outfile.write('  - set_fact: var_mylist="{{var_mylist + [item[\'networkUri\']]}}"\n')
-		outfile.write('    when: item[\'networkUri\'] not in var_mylist and item[\'networkUri\'] is search("/ethernet-networks/")\n')
+		outfile.write('  - set_fact: var_standardswitches_uris={{[]}}\n')
+		outfile.write('  - set_fact: var_standardswitches_uris="{{var_standardswitches_uris + [item[\'networkUri\']]}}"\n')
+		outfile.write('    when: item[\'networkUri\'] not in var_standardswitches_uris and item[\'networkUri\'] is search("/ethernet-networks/")\n')
 		outfile.write('    with_items: \'{{ server_profile_templates[0]["connectionSettings"]["connections"] }}\'\n')
 		outfile.write('    no_log: True\n')
-		outfile.write('  - debug: var=var_mylist\n')
+		outfile.write('  - debug: var=var_standardswitches_uris\n')
 		outfile.write('\n')
+		outfile.write('  - set_fact: var_distributedswitches_uris={{[]}}\n')
+		outfile.write('  - set_fact: var_distributedswitches_uris="{{var_distributedswitches_uris + [item[\'networkUri\']]}}"\n')
+		outfile.write('    when: item[\'networkUri\'] not in var_distributedswitches_uris and item[\'networkUri\'] is search("/network-sets/")\n')
+		outfile.write('    with_items: \'{{ server_profile_templates[0]["connectionSettings"]["connections"] }}\'\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - debug: var=var_distributedswitches_uris\n')
+		outfile.write('\n')
+		
+		#TODO 2x URI to names
 		
 		for cluster in varaiblesClustersAll:
 			if(cluster[0]!=frame["letter"]):
@@ -2005,8 +2014,8 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			
 			
 			
-			#"connectionSettings" mit networkUri=ethernet-networks, alle finden mit gleicher uri-id
-			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches
+
+			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches (stehen in var_mylist)
 			outfile.write('          - name: "{{ vswitch_name }}"\n') #von uri name holen
 			outfile.write('            virtualSwitchType: Standard\n')
 			outfile.write('            version: \n')
