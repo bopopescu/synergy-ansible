@@ -53,10 +53,307 @@ os.chdir(dname)
 
 
 
+############################################################################
+############## Small helper functions ######################################
+############################################################################
 
 def columnCharToInt(c):
 	c = c.lower()
 	return string.ascii_lowercase.index(c)
+
+
+def convertToAnsibleVariableName(n):
+	n = str(n)
+	n = n.lower().replace(" ","_").replace("-","_")
+	n = re.sub(r'\W+', '', n)
+	return n
+
+############################################################################
+############## Parse Excel functions #######################################
+############################################################################
+
+def findFrames():
+	global variablesAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabgeneral)
+	
+
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="OneView Hostname"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+					continue
+					
+				tmp = {"name":data,"column":col,"letter":data[0]}
+				variablesAll.append(tmp)
+			break
+	
+	#ehemals fillvariables
+	for frame in variablesAll:
+		variables = {}
+		infocount = 0
+		foundGateway = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Infos"):
+				infocount = infocount + 1
+				continue
+
+			if(infocount!=1):
+				continue
+			
+			#found valid line
+			columnDataInt = frame["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+			if(name=="gateway"):
+				if(foundGateway):
+					continue
+				foundGateway = True
+			
+			variables[name] = data
+		frame["variables"] = variables
+
+
+
+def findNimbles():
+	global variablesNimbleAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabstorage)
+	
+
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Storage System Name"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
+					continue
+					
+				tmp = {"name":data,"column":col,"letter":data[0]}
+				variablesNimbleAll[data[0]] = tmp
+			break
+	
+	#ehemals fillvariablesnimble
+	for l in variablesNimbleAll:
+		nimble = variablesNimbleAll[l]
+		variables = {}
+		start = False
+		end = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Group name"):
+				start = True
+				
+			if(not start):
+				continue
+				
+			if(end):
+				continue
+				
+			if(name=="NTP (time) server IP address"):
+				end = True
+			
+			#found valid line
+			columnDataInt = nimble["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+
+			
+			variables[name] = data
+		nimble["variables"] = variables
+
+
+
+
+
+def findSynergyNimbles():
+	global variablesSynergyNimbleAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabnimble)
+	
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Zone"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
+					continue
+				
+				tmp = {"column":col,"letter":data[0]}
+				variablesSynergyNimbleAll[data[0]] = tmp
+			break
+	
+	#ehemals fillvariablesnimble
+	for l in variablesSynergyNimbleAll:
+		nimble = variablesSynergyNimbleAll[l]
+		variables = {}
+		start = False
+		end = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Storage system type"):
+				start = True
+				
+			if(not start):
+				continue
+				
+			if(end):
+				continue
+				
+			if(name=="Networks"):
+				end = True
+			
+			#found valid line
+			columnDataInt = nimble["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+
+			
+			variables[name] = data
+		nimble["variables"] = variables
+
+
+
+
+def findHypervisor():
+	global variablesHypervisorAll,varaiblesClustersAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabhypervisor)
+
+	start = False
+	end = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,0))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Type"):
+			start = True
+			
+		if(not start):
+			continue
+			
+		if(end):
+			continue
+			
+		if(name=="High availability"):
+			end = True
+		
+		#found valid line
+		data = worksheet.cell_value(row,1)
+		if(isinstance(data,float)):
+			data = str(int(data))
+		
+		if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+			continue
+		
+		if(data.find("#TODO") != -1):
+			pos = data.find("#TODO")
+			data = data[:pos-1]
+		
+		name = convertToAnsibleVariableName(name)			
+		variablesHypervisorAll[name] = data
+		
+		
+	#clusters
+	start = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,3))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Cluster"):
+			start = True
+			continue
+			
+		if(not start):
+			continue
+		
+		#found valid line
+		if(not name in varaiblesClustersAll):
+			varaiblesClustersAll.append(name)	
+
+
+
+############################################################################
+############## Write Config and Fileheaders functions ######################
+############################################################################
+
+
+def writeConfigs():
+	for frame in variablesAll:
+		configFile = outputfolder+"/"+config_prefx+frame["letter"]+config_sufix
+		outfile = open(configFile,'w')
+		outfile.write("{"+"\n")
+		outfile.write("    \"ip\": \""+frame["variables"]["oneview_hostname"].lower()+"."+frame["variables"]["domain_name"]+"\","+"\n")
+		outfile.write("    \"credentials\": {"+"\n")
+		outfile.write("        \"userName\": \"Administrator\","+"\n")
+		outfile.write("        \"password\": \""+frame["variables"]["administrator_passwort"]+"\""+"\n")
+		outfile.write("    },"+"\n")
+		outfile.write("    \"image_streamer_ip\": \"\","+"\n") #todo, bleibt erstmal leer
+		outfile.write('    "api_version": "'+restApiVersion+'"\n')
+		outfile.write("}"+"\n")
+		outfile.close()
 
 def writeFileheader(outfile,configFileName):
 	filename = os.path.basename(outfile.name)
@@ -80,6 +377,41 @@ def writeFileheader(outfile,configFileName):
 		
 
 
+
+def writeFilepartRESTAPILogin(outfile,host,username,password):
+		outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+host+'/rest/login-sessions\n')
+		outfile.write('      method: POST\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('        authLoginDomain: "LOCAL"\n')
+		outfile.write('        password: "'+password+'"\n')
+		outfile.write('        userName: "'+username+'"\n')
+		outfile.write('        loginMsgAck: "true"\n')
+		outfile.write('    register: var_this\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_token\n')
+		outfile.write('\n')
+
+
+
+
+
+
+
+############################################################################
+############## Create Playbooks functions ##################################
+############################################################################
+
+#01
 def writeTimelocale(nr,name):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+name+filename_sufix
@@ -98,6 +430,7 @@ def writeTimelocale(nr,name):
 		outfile.write("\n")
 		outfile.close()		
 
+#02
 def writeAddresspoolsubnet(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -130,6 +463,7 @@ def writeAddresspoolsubnet(nr,filenamepart):
 				variablesOneSubnet[variablesHead[col]] = val
 		writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet)
 		
+#02 helper
 def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):	
 	if(not "zone" in variablesOneSubnet):
 		print("variablesOneSubnet missing zone!")
@@ -207,279 +541,69 @@ def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):
 		outfile.close()
 
 
-def findHypervisor():
-	global variablesHypervisorAll,varaiblesClustersAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabhypervisor)
-
-	start = False
-	end = False
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,0))
-		
-		if(name==""):
-			continue
-			
-		if(name=="Type"):
-			start = True
-			
-		if(not start):
-			continue
-			
-		if(end):
-			continue
-			
-		if(name=="High availability"):
-			end = True
-		
-		#found valid line
-		data = worksheet.cell_value(row,1)
-		if(isinstance(data,float)):
-			data = str(int(data))
-		
-		if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-			continue
-		
-		if(data.find("#TODO") != -1):
-			pos = data.find("#TODO")
-			data = data[:pos-1]
-		
-		name = convertToAnsibleVariableName(name)			
-		variablesHypervisorAll[name] = data
-		
-		
-	#clusters
-	start = False
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,3))
-		
-		if(name==""):
-			continue
-			
-		if(name=="Cluster"):
-			start = True
-			continue
-			
-		if(not start):
-			continue
-		
-		#found valid line
-		if(not name in varaiblesClustersAll):
-			varaiblesClustersAll.append(name)	
 
 
-
-
-def findSynergyNimbles():
-	global variablesSynergyNimbleAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabnimble)
-	
-	columnNamesInt = columnCharToInt(columnNames)
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,columnNamesInt))
-		
-		if(name==""):
-			continue
-			
-		if(name=="Zone"):
-			
-			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
-				data = str(worksheet.cell_value(row,col))
-				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
-					continue
-				
-				tmp = {"column":col,"letter":data[0]}
-				variablesSynergyNimbleAll[data[0]] = tmp
-			break
-	
-	#ehemals fillvariablesnimble
-	for l in variablesSynergyNimbleAll:
-		nimble = variablesSynergyNimbleAll[l]
-		variables = {}
-		start = False
-		end = False
-		for row in range(worksheet.nrows):
-			name = str(worksheet.cell_value(row,columnNamesInt))
-			
-			if(name==""):
-				continue
-				
-			if(name=="Storage system type"):
-				start = True
-				
-			if(not start):
-				continue
-				
-			if(end):
-				continue
-				
-			if(name=="Networks"):
-				end = True
-			
-			#found valid line
-			columnDataInt = nimble["column"]
-			data = str(worksheet.cell_value(row,columnDataInt))
-			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-				continue
-			
-			if(data.find("#TODO") != -1):
-				pos = data.find("#TODO")
-				data = data[:pos-1]
-			
-			name = convertToAnsibleVariableName(name)			
-
-			
-			variables[name] = data
-		nimble["variables"] = variables
-
-def findNimbles():
-	global variablesNimbleAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabstorage)
-	
-
-	columnNamesInt = columnCharToInt(columnNames)
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,columnNamesInt))
-		
-		if(name==""):
-			continue
-			
-		if(name=="Storage System Name"):
-			
-			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
-				data = str(worksheet.cell_value(row,col))
-				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
-					continue
-					
-				tmp = {"name":data,"column":col,"letter":data[0]}
-				variablesNimbleAll[data[0]] = tmp
-			break
-	
-	#ehemals fillvariablesnimble
-	for l in variablesNimbleAll:
-		nimble = variablesNimbleAll[l]
-		variables = {}
-		start = False
-		end = False
-		for row in range(worksheet.nrows):
-			name = str(worksheet.cell_value(row,columnNamesInt))
-			
-			if(name==""):
-				continue
-				
-			if(name=="Group name"):
-				start = True
-				
-			if(not start):
-				continue
-				
-			if(end):
-				continue
-				
-			if(name=="NTP (time) server IP address"):
-				end = True
-			
-			#found valid line
-			columnDataInt = nimble["column"]
-			data = str(worksheet.cell_value(row,columnDataInt))
-			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-				continue
-			
-			if(data.find("#TODO") != -1):
-				pos = data.find("#TODO")
-				data = data[:pos-1]
-			
-			name = convertToAnsibleVariableName(name)			
-
-			
-			variables[name] = data
-		nimble["variables"] = variables
-
-def findFrames():
-	global variablesAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabgeneral)
-	
-
-	columnNamesInt = columnCharToInt(columnNames)
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,columnNamesInt))
-		
-		if(name==""):
-			continue
-			
-		if(name=="OneView Hostname"):
-			
-			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
-				data = str(worksheet.cell_value(row,col))
-				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-					continue
-					
-				tmp = {"name":data,"column":col,"letter":data[0]}
-				variablesAll.append(tmp)
-			break
-	
-	#ehemals fillvariables
+#03
+def writeAddHypervisorManager(nr,filenamepart):		
 	for frame in variablesAll:
-		variables = {}
-		infocount = 0
-		foundGateway = False
-		for row in range(worksheet.nrows):
-			name = str(worksheet.cell_value(row,columnNamesInt))
-			
-			if(name==""):
-				continue
-				
-			if(name=="Infos"):
-				infocount = infocount + 1
-				continue
-
-			if(infocount!=1):
-				continue
-			
-			#found valid line
-			columnDataInt = frame["column"]
-			data = str(worksheet.cell_value(row,columnDataInt))
-			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-				continue
-			
-			if(data.find("#TODO") != -1):
-				pos = data.find("#TODO")
-				data = data[:pos-1]
-			
-			name = convertToAnsibleVariableName(name)			
-			if(name=="gateway"):
-				if(foundGateway):
-					continue
-				foundGateway = True
-			
-			variables[name] = data
-		frame["variables"] = variables
-
-
-def writeConfigs():
-	for frame in variablesAll:
-		configFile = outputfolder+"/"+config_prefx+frame["letter"]+config_sufix
-		outfile = open(configFile,'w')
-		outfile.write("{"+"\n")
-		outfile.write("    \"ip\": \""+frame["variables"]["oneview_hostname"].lower()+"."+frame["variables"]["domain_name"]+"\","+"\n")
-		outfile.write("    \"credentials\": {"+"\n")
-		outfile.write("        \"userName\": \"Administrator\","+"\n")
-		outfile.write("        \"password\": \""+frame["variables"]["administrator_passwort"]+"\""+"\n")
-		outfile.write("    },"+"\n")
-		outfile.write("    \"image_streamer_ip\": \"\","+"\n") #todo, bleibt erstmal leer
-		outfile.write('    "api_version": "'+restApiVersion+'"\n')
-		outfile.write("}"+"\n")
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		writeFilepartRESTAPILogin(outfile,frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"],"Administrator",frame["variables"]["administrator_passwort"])
+		
+		
+		#BEGIN
+		outfile.write('  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/hypervisor-managers\n')
+		outfile.write('      method: POST\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('        type: "HypervisorManagerV2"\n')
+		outfile.write('        name: "'+variablesHypervisorAll["hostname"]+'"\n')
+		outfile.write('        username: "'+variablesHypervisorAll["username"]+'"\n')
+		outfile.write('        password: "'+variablesHypervisorAll["password"]+'"\n')
+		outfile.write('        hypervisorType: "Vmware"\n')
+		outfile.write('        preferences:\n')
+		outfile.write('          type: "Vmware"\n')
+		outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
+		outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
+		outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
+		outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
+		outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["multi_nic_vmotion"]=="Enabled") else "false")+'\n')
+		outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
+		outfile.write('      status_code: 202\n')
+		outfile.write('    register: var_return\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_return\n')
+		outfile.write('\n')
+		outfile.write('  - name: Taskinfo\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: \'{{ var_return["location"] }}\'\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_taskinfo\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_taskinfo\n')
+		outfile.write('\n')
+		#END
 		outfile.close()
-	
+		
 
 
+#04
 def writeCreatenetwork(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -516,7 +640,7 @@ def writeCreatenetwork(nr,filenamepart):
 				variablesOneNet[variablesHead[col]] = val
 		writeCreatenetworkOne(nr,filenamepart,variablesOneNet)
 
-
+#04 helper
 def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):	
 	if(not "zone" in variablesOneNet):
 		print("variablesOneNet missing zone!")
@@ -541,9 +665,6 @@ def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
 		if(variablesOneNet["zone"].find(frame["letter"]) != -1):
 			
 			if(variablesOneNet["ipv4subnet"]!="None"):
-			
-			
-			
 				outfile.write("    - name: Gather facts about ID Pools IPV4 Subnets by name\n")
 				outfile.write("      oneview_id_pools_ipv4_subnet_facts:\n")
 				outfile.write("        config: \"{{ config }}\"\n")
@@ -576,12 +697,105 @@ def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
 		
 		outfile.close()
 		
-def convertToAnsibleVariableName(n):
-	n = str(n)
-	n = n.lower().replace(" ","_").replace("-","_")
-	n = re.sub(r'\W+', '', n)
-	return n
+
+
+#05
+def writeOSdeploymentServer(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		
+		#BEGIN
+		outfile.write('  tasks:'+"\n")
+		outfile.write('    - name: Ensure that the Deployment Server is present'+"\n")
+		outfile.write('      oneview_os_deployment_server:'+"\n")
+		outfile.write('        config: "{{ config }}"'+"\n")
+		outfile.write('        state: present'+"\n")
+		outfile.write('        data:'+"\n")
+		outfile.write('          name: "'+frame["variables"]["oneview_hostname"]+'_OSDS"'+"\n")
+		outfile.write('          mgmtNetworkName: "oob-mgmt"'+"\n")
+		outfile.write('          applianceName: "'+frame["letter"]+'-Master2, appliance 2"'+"\n")
+		outfile.write('          deplManagersType: "Image Streamer"'+"\n")
+		outfile.write(''+"\n")
+		outfile.write('    - debug: var=os_deployment_server'+"\n")
+		outfile.write("\n")
+		#END
+		outfile.close()
+		
+		
+
+
+
+
+
+#06
+def writeNetworkset(nr,filenamepart):
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabnets)
+	
+	variablesHead = []
+	variables = []
+	networksets = []
+	
+	for col in range(worksheet.ncols):
+		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
+		variablesHead.append(name)
+	
+	for row in range(1,worksheet.nrows):
+		variablesOneNet = {}
+		for col in range(worksheet.ncols):
+			val = worksheet.cell_value(row,col)
+			
+			if(isinstance(val,float)):
+				val = str(int(val))
+			
+			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
+				val = ""
+			
+			if(val.find("#TODO") != -1):
+				pos = val.find("#TODO")
+				val = val[:pos-1]
+			
+			variablesOneNet[variablesHead[col]] = val
+			
+			if(variablesHead[col]=="networkset"):
+				if(val!=""):
+					if(not val in networksets):
+						networksets.append(val)
+			
+		variables.append(variablesOneNet)
+	
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		for networkset in networksets:
+			outfile.write('    - name: Create Network Set '+networkset+"\n")
+			outfile.write('      oneview_network_set:'+"\n")
+			outfile.write('        config: "{{ config }}"'+"\n")
+			outfile.write('        state: present'+"\n")
+			outfile.write('        data:'+"\n")
+			outfile.write('          type: "network-setV4"'+"\n")
+			outfile.write('          name: "'+networkset+'"'+"\n")
+			outfile.write('          networkUris:'+"\n") # it is possible to pass names instead of URIs
+			for v in variables:
+				if(v["networkset"] == networkset):
+					if(frame["letter"] in v["zone"]):
+						outfile.write('            - '+v["name"]+"\n")
+			outfile.write('      delegate_to: localhost'+"\n")
+			outfile.write("\n")
+		#END
+		outfile.close()
+
+
+
+
+
+#07
 def writeLogicalInterconnectGroup(nr,filenamepart):
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
@@ -846,92 +1060,8 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 		outfile.close()
 
 
-def writeOSdeploymentServer(nr,filenamepart):
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		
-		#BEGIN
-		outfile.write('  tasks:'+"\n")
-		outfile.write('    - name: Ensure that the Deployment Server is present'+"\n")
-		outfile.write('      oneview_os_deployment_server:'+"\n")
-		outfile.write('        config: "{{ config }}"'+"\n")
-		outfile.write('        state: present'+"\n")
-		outfile.write('        data:'+"\n")
-		outfile.write('          name: "'+frame["variables"]["oneview_hostname"]+'_OSDS"'+"\n")		 				#CODE oneview_hostname+"_OSDS"
-		outfile.write('          mgmtNetworkName: "oob-mgmt"'+"\n")
-		outfile.write('          applianceName: "'+frame["letter"]+'-Master2, appliance 2"'+"\n")		 #CODE Zone+"-Master2, appliance 2"
-		outfile.write('          deplManagersType: "Image Streamer"'+"\n")
-		outfile.write(''+"\n")
-		outfile.write('    - debug: var=os_deployment_server'+"\n")
-		outfile.write("\n")
-		#END
-		outfile.close()
-		
-def writeNetworkset(nr,filenamepart):
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabnets)
-	
-	variablesHead = []
-	variables = []
-	networksets = []
-	
-	for col in range(worksheet.ncols):
-		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
-		variablesHead.append(name)
-	
-	for row in range(1,worksheet.nrows):
-		variablesOneNet = {}
-		for col in range(worksheet.ncols):
-			val = worksheet.cell_value(row,col)
-			
-			if(isinstance(val,float)):
-				val = str(int(val))
-			
-			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
-				val = ""
-			
-			if(val.find("#TODO") != -1):
-				pos = val.find("#TODO")
-				val = val[:pos-1]
-			
-			variablesOneNet[variablesHead[col]] = val
-			
-			if(variablesHead[col]=="networkset"):
-				if(val!=""):
-					if(not val in networksets):
-						networksets.append(val)
-			
-		variables.append(variablesOneNet)
-	
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 
-		#BEGIN
-		for networkset in networksets:
-			outfile.write('    - name: Create Network Set '+networkset+"\n")
-			outfile.write('      oneview_network_set:'+"\n")
-			outfile.write('        config: "{{ config }}"'+"\n")
-			outfile.write('        state: present'+"\n")
-			outfile.write('        data:'+"\n")
-			outfile.write('          type: "network-setV4"'+"\n")
-			outfile.write('          name: "'+networkset+'"'+"\n")
-			outfile.write('          networkUris:'+"\n") # it is possible to pass names instead of URIs
-			for v in variables:
-				if(v["networkset"] == networkset):
-					if(frame["letter"] in v["zone"]):
-						outfile.write('            - '+v["name"]+"\n")
-			outfile.write('      delegate_to: localhost'+"\n")
-			outfile.write("\n")
-		#END
-		outfile.close()
-
-
-
+#08
 def writeEnclosureGroup(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1022,7 +1152,7 @@ def writeEnclosureGroup(nr,filenamepart):
 		outfile.close()
 	   
 	   
-
+#09
 def writeLogicalEnclosure(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1097,8 +1227,9 @@ def writeLogicalEnclosure(nr,filenamepart):
 		#END
 		outfile.close()
 		
-		
 
+	
+#10
 def writeStoragesystem(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1172,13 +1303,13 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('\n')
 		outfile.write('  - debug: var=nimble\n')
 		outfile.write('\n')
-
-
-
 		#END
 		outfile.close()
 		
 		
+		
+		
+#11
 def writeAddFirmwareBundle(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1197,7 +1328,8 @@ def writeAddFirmwareBundle(nr,filenamepart):
 		#END
 		outfile.close()
 		
-		
+
+#12
 def writeSetImagestreameripInConfig(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1226,6 +1358,7 @@ def writeSetImagestreameripInConfig(nr,filenamepart):
 		outfile.write('\n')
 		outfile.close()
 		
+#13
 def writeUploadAndExtractIsArtifact(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1242,7 +1375,6 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		outfile.write('          localArtifactBundleFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["artifact_bundle"]+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
-		
 		outfile.write('    - name: Extract an Artifact Bundle\n')
 		outfile.write('      image_streamer_artifact_bundle:\n')
 		outfile.write('        config: "{{ config }}"\n')
@@ -1251,11 +1383,10 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		outfile.write('          name: "'+frame["variables"]["artifact_bundle"].replace(".zip","")+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
-		
 		#END
 		outfile.close()
 		
-		
+#14
 def writeUploadGI(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1276,7 +1407,7 @@ def writeUploadGI(nr,filenamepart):
 		#END
 		outfile.close()	
 
-
+#15
 def writeCreatedeploymentplan(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1356,146 +1487,7 @@ def writeCreatedeploymentplan(nr,filenamepart):
 
 
 
-
-def writeFilepartRESTAPILogin(outfile,host,username,password):
-		outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+host+'/rest/login-sessions\n')
-		outfile.write('      method: POST\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('        authLoginDomain: "LOCAL"\n')
-		outfile.write('        password: "'+password+'"\n')
-		outfile.write('        userName: "'+username+'"\n')
-		outfile.write('        loginMsgAck: "true"\n')
-		outfile.write('    register: var_this\n')
-		outfile.write('\n')
-		outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_token\n')
-		outfile.write('\n')
-
-
-
-def writeAddHypervisorManager(nr,filenamepart):		
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		writeFilepartRESTAPILogin(outfile,frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"],"Administrator",frame["variables"]["administrator_passwort"])
-		
-		
-		#BEGIN
-		outfile.write('  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/hypervisor-managers\n')
-		outfile.write('      method: POST\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('        type: "HypervisorManagerV2"\n')
-		outfile.write('        name: "'+variablesHypervisorAll["hostname"]+'"\n')
-		outfile.write('        username: "'+variablesHypervisorAll["username"]+'"\n')
-		outfile.write('        password: "'+variablesHypervisorAll["password"]+'"\n')
-		outfile.write('        hypervisorType: "Vmware"\n')
-		outfile.write('        preferences:\n')
-		outfile.write('          type: "Vmware"\n')
-		outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
-		outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
-		outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
-		outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
-		outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["multi_nic_vmotion"]=="Enabled") else "false")+'\n')
-		outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
-		outfile.write('      status_code: 202\n')
-		outfile.write('    register: var_return\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_return\n')
-		outfile.write('\n')
-		outfile.write('  - name: Taskinfo\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: \'{{ var_return["location"] }}\'\n')
-		outfile.write('      method: GET\n')
-		outfile.write('      status_code: 200\n')
-		outfile.write('    register: var_taskinfo\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_taskinfo\n')
-		outfile.write('\n')
-		#END
-		outfile.close()
-		
-
-def writeRenameEnclosures(nr,filenamepart):		
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-
-		#BEGIN
-		outfile.write('    - name: Gather facts about all Enclosures\n')
-		outfile.write('      oneview_enclosure_facts:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('\n')
-		outfile.write('    - set_fact: enc_m1="{{ item }}"\n')
-		outfile.write('      loop: "{{ enclosures }}"\n')
-		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is none\n')
-		outfile.write('\n')
-		outfile.write('    - set_fact: enc_m2="{{ item }}"\n')
-		outfile.write('      loop: "{{ enclosures }}"\n')
-		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
-		outfile.write('\n')
-		outfile.write('    - set_fact: enc_sl="{{ item }}"\n')
-		outfile.write('      loop: "{{ enclosures }}"\n')
-		outfile.write('      when: item.applianceBays.0.model is none and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
-		outfile.write('\n')
-		outfile.write('    - name: Rename Enclosure Master-1\n')
-		outfile.write('      oneview_enclosure:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('        state: present\n')
-		outfile.write('        validate_etag: False\n')
-		outfile.write('        data:\n')
-		outfile.write('          name: "{{ enc_m1.name }}"\n')
-		outfile.write('          newName: "'+frame["letter"]+'-Master1"\n')
-		outfile.write('\n')
-		outfile.write('    - name: Rename Enclosure Master-2\n')
-		outfile.write('      oneview_enclosure:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('        state: present\n')
-		outfile.write('        validate_etag: False\n')
-		outfile.write('        data:\n')
-		outfile.write('          name: "{{ enc_m2.name }}"\n')
-		outfile.write('          newName: "'+frame["letter"]+'-Master2"\n')
-		outfile.write('\n')
-		outfile.write('    - name: Rename Enclosure Slave\n')
-		outfile.write('      oneview_enclosure:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('        state: present\n')
-		outfile.write('        validate_etag: False\n')
-		outfile.write('        data:\n')
-		outfile.write('          name: "{{ enc_sl.name }}"\n')
-		outfile.write('          newName: "'+frame["letter"]+'-Slave"\n')
-		outfile.write('\n')
-		#END
-		outfile.close()
-		
-		
-		
-		
+#16
 def writeRenameServerHardwareTypes(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1561,178 +1553,9 @@ def writeRenameServerHardwareTypes(nr,filenamepart):
 		outfile.close()
 		
 		
-
-def writeAddHypervisorClusterProfile(nr,filenamepart):		
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
-		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
 		
-		
-		
-		#BEGIN get Hypervisor managers
-		outfile.write('  - name: get Hypervisor managers\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+hostname+'/rest/hypervisor-managers\n')
-		outfile.write('      method: GET\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('      status_code: 200\n')
-		outfile.write('    register: var_hypervisor_managers\n')
-		outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
-		outfile.write('\n')
-		
-		
-		#BEGIN get Server Profile Templates
-		outfile.write('  - name: get Server Profile Templates\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+hostname+'/rest/server-profile-templates\n')
-		outfile.write('      method: GET\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('      status_code: 200\n')
-		outfile.write('    register: var_server_profile_templates\n')
-		
-		
-		
-		#outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
-		outfile.write('\n')
-		
-		
-		for cluster in varaiblesClustersAll:
-			if(cluster[0]!=frame["letter"]):
-				continue
-				
-			#BEGIN SET
-			outfile.write('  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)\n')
-			outfile.write('    uri:\n')
-			outfile.write('      validate_certs: no\n')
-			outfile.write('      headers:\n')
-			outfile.write('        Auth: "{{ var_token }}"\n')
-			outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-			outfile.write('        Content-Type: application/json\n')
-			outfile.write('      url: https://'+hostname+'/rest/hypervisor-cluster-profiles\n')
-			outfile.write('      method: POST\n')
-			outfile.write('      body_format: json\n')
-			outfile.write('      body:\n')
-			
-			#BEGIN SET BODY
-			outfile.write('        type: HypervisorClusterProfileV3\n')
-			outfile.write('        name: "'+cluster+'"\n')
-			outfile.write('        description: ""\n')
-			outfile.write('        hypervisorType: Vmware\n')
-			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
-			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
-			outfile.write('        mgmtIpSettingsOverride:\n')
-			outfile.write('          netmask: "{{ mgt_network_netmask }}"\n')
-			outfile.write('          gateway: "{{ mgt_network_gateway }}"\n')
-			outfile.write('          dnsDomain: "{{ mgt_network_domain }}"\n')
-			outfile.write('          primaryDns: "{{ mgt_network_dns1 }}"\n')
-			outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')		
-			outfile.write('        hypervisorClusterSettings:\n')
-			outfile.write('          type: "Vmware"\n')
-			outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
-			outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
-			outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
-			outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
-			outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["multi_nic_vmotion"]=="Enabled") else "false")+'\n')
-			outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
-			outfile.write('        hypervisorHostProfileTemplate:\n')
-			outfile.write('          serverProfileTemplateUri: "{{ spt_uri }}"\n') #CODE depends on step 17
-			outfile.write('          deploymentPlan:\n')
-			outfile.write('            serverPassword: "{{ serverPassword }}"\n')
-			outfile.write('            deploymentCustomArgs: []\n')
-			outfile.write('          hostprefix: "{{ hvcp_name }}"\n')
-			outfile.write('          virtualSwitches:\n')
-			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches
-			outfile.write('          - name: "{{ vswitch_name }}"\n')
-			outfile.write('            virtualSwitchType: Standard\n')
-			outfile.write('            version: \n')
-			outfile.write('            virtualSwitchPortGroups:\n')
-			outfile.write('            - name: "{{ portgroup_name }}"\n')
-			outfile.write('              networkUris:\n')
-			outfile.write('              - "{{ network_uri }}"\n')
-			outfile.write('              vlan: "0"\n')
-			outfile.write('              virtualSwitchPorts:\n')
-			outfile.write('              - virtualPortPurpose:\n')
-			outfile.write('                - {{ network_purpose }}\n')
-			outfile.write('                ipAddress: \n')
-			outfile.write('                subnetMask: \n')
-			outfile.write('                dhcp: true\n')
-			outfile.write('                action: NONE\n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            virtualSwitchUplinks:\n')
-			outfile.write('            - name: Mezz 3:1-d\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            - name: Mezz 3:2-d\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            action: NONE\n')
-			outfile.write('            networkUris:\n')
-			outfile.write('            - "{{ network_uri }}"\n')
-			outfile.write('\n')          #CODE Loop_end      
-			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
-			outfile.write('          - name: "{{ vswitch_name }}"\n')
-			outfile.write('            virtualSwitchType: Distributed\n')
-			outfile.write('            version: 6.6.0\n')
-			outfile.write('            virtualSwitchPortGroups:\n')
-			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet
-			outfile.write('            - name: "{{ network_name }}"\n')
-			outfile.write('              networkUris:\n')
-			outfile.write('              - "{{ network_uri }}\n')
-			outfile.write('              vlan: "{{ network_vlan }}"\n')
-			outfile.write('              virtualSwitchPorts: []\n')
-			outfile.write('              action: NONE\n')
-			outfile.write('\n')        	#CODE Loop_end
-			outfile.write('            virtualSwitchUplinks:\n')
-			outfile.write('            - name: Mezz 3:1-f\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            - name: Mezz 3:2-f\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            action: NONE\n')
-			outfile.write('            networkUris:\n')
-			outfile.write('            - "{{ networkset_uri }}"\n')
-			outfile.write('\n')        #CODE Loop_end
-			outfile.write('          hostConfigPolicy:\n')
-			outfile.write('            leaveHostInMaintenance: false\n')
-			outfile.write('            useHostnameToRegister: true\n')
-			outfile.write('          virtualSwitchConfigPolicy:\n')
-			outfile.write('            manageVirtualSwitches: true\n')
-			outfile.write('            configurePortGroups: true\n')
-			#END BODY
-			
-			outfile.write('      status_code: 202\n')
-			outfile.write('    register: var_return\n')
-			outfile.write('\n')
-			outfile.write('  - debug:\n')
-			outfile.write('      var: var_return\n')
-			outfile.write('\n')
-		#END
-		outfile.close()
-
+	
+#17
 def writeCreateServerProfileTemplate(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -2112,6 +1935,234 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 		outfile.write('\n')
 		#END
 		
+
+#18
+def writeAddHypervisorClusterProfile(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
+		
+		#BEGIN get Hypervisor managers
+		outfile.write('  - name: get Hypervisor managers\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+hostname+'/rest/hypervisor-managers\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_hypervisor_managers\n')
+		outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
+		outfile.write('\n')
+		
+		#BEGIN get Server Profile Templates
+		outfile.write('  - name: get Server Profile Templates\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: no\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+hostname+'/rest/server-profile-templates\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_server_profile_templates\n')
+		
+		#outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
+		outfile.write('\n')
+		
+		for cluster in varaiblesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+				
+			#BEGIN SET
+			outfile.write('  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: no\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: https://'+hostname+'/rest/hypervisor-cluster-profiles\n')
+			outfile.write('      method: POST\n')
+			outfile.write('      body_format: json\n')
+			outfile.write('      body:\n')
+			
+			#BEGIN SET BODY
+			outfile.write('        type: HypervisorClusterProfileV3\n')
+			outfile.write('        name: "'+cluster+'"\n')
+			outfile.write('        description: ""\n')
+			outfile.write('        hypervisorType: Vmware\n')
+			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
+			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
+			outfile.write('        mgmtIpSettingsOverride:\n')
+			outfile.write('          netmask: "{{ mgt_network_netmask }}"\n')
+			outfile.write('          gateway: "{{ mgt_network_gateway }}"\n')
+			outfile.write('          dnsDomain: "{{ mgt_network_domain }}"\n')
+			outfile.write('          primaryDns: "{{ mgt_network_dns1 }}"\n')
+			outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')		
+			outfile.write('        hypervisorClusterSettings:\n')
+			outfile.write('          type: "Vmware"\n')
+			outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
+			outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
+			outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
+			outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
+			outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["multi_nic_vmotion"]=="Enabled") else "false")+'\n')
+			outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
+			outfile.write('        hypervisorHostProfileTemplate:\n')
+			outfile.write('          serverProfileTemplateUri: "{{ spt_uri }}"\n') #CODE depends on step 17
+			outfile.write('          deploymentPlan:\n')
+			outfile.write('            serverPassword: "{{ serverPassword }}"\n')
+			outfile.write('            deploymentCustomArgs: []\n')
+			outfile.write('          hostprefix: "{{ hvcp_name }}"\n')
+			outfile.write('          virtualSwitches:\n')
+			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches
+			outfile.write('          - name: "{{ vswitch_name }}"\n')
+			outfile.write('            virtualSwitchType: Standard\n')
+			outfile.write('            version: \n')
+			outfile.write('            virtualSwitchPortGroups:\n')
+			outfile.write('            - name: "{{ portgroup_name }}"\n')
+			outfile.write('              networkUris:\n')
+			outfile.write('              - "{{ network_uri }}"\n')
+			outfile.write('              vlan: "0"\n')
+			outfile.write('              virtualSwitchPorts:\n')
+			outfile.write('              - virtualPortPurpose:\n')
+			outfile.write('                - {{ network_purpose }}\n')
+			outfile.write('                ipAddress: \n')
+			outfile.write('                subnetMask: \n')
+			outfile.write('                dhcp: true\n')
+			outfile.write('                action: NONE\n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            virtualSwitchUplinks:\n')
+			outfile.write('            - name: Mezz 3:1-d\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            - name: Mezz 3:2-d\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            action: NONE\n')
+			outfile.write('            networkUris:\n')
+			outfile.write('            - "{{ network_uri }}"\n')
+			outfile.write('\n')          #CODE Loop_end      
+			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
+			outfile.write('          - name: "{{ vswitch_name }}"\n')
+			outfile.write('            virtualSwitchType: Distributed\n')
+			outfile.write('            version: 6.6.0\n')
+			outfile.write('            virtualSwitchPortGroups:\n')
+			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet
+			outfile.write('            - name: "{{ network_name }}"\n')
+			outfile.write('              networkUris:\n')
+			outfile.write('              - "{{ network_uri }}\n')
+			outfile.write('              vlan: "{{ network_vlan }}"\n')
+			outfile.write('              virtualSwitchPorts: []\n')
+			outfile.write('              action: NONE\n')
+			outfile.write('\n')        	#CODE Loop_end
+			outfile.write('            virtualSwitchUplinks:\n')
+			outfile.write('            - name: Mezz 3:1-f\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            - name: Mezz 3:2-f\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            action: NONE\n')
+			outfile.write('            networkUris:\n')
+			outfile.write('            - "{{ networkset_uri }}"\n')
+			outfile.write('\n')        #CODE Loop_end
+			outfile.write('          hostConfigPolicy:\n')
+			outfile.write('            leaveHostInMaintenance: false\n')
+			outfile.write('            useHostnameToRegister: true\n')
+			outfile.write('          virtualSwitchConfigPolicy:\n')
+			outfile.write('            manageVirtualSwitches: true\n')
+			outfile.write('            configurePortGroups: true\n')
+			#END BODY
+			
+			outfile.write('      status_code: 202\n')
+			outfile.write('    register: var_return\n')
+			outfile.write('\n')
+			outfile.write('  - debug:\n')
+			outfile.write('      var: var_return\n')
+			outfile.write('\n')
+		#END
+		outfile.close()
+
+
+#19
+def writeRenameEnclosures(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		outfile.write('    - name: Gather facts about all Enclosures\n')
+		outfile.write('      oneview_enclosure_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_m1="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is none\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_m2="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_sl="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      when: item.applianceBays.0.model is none and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Master-1\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_m1.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Master1"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Master-2\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_m2.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Master2"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Slave\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_sl.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Slave"\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
+		
+		
+
+############################################################################
+############## Main Function ###############################################
+############################################################################
+		
 def main():
 	findFrames()
 	findNimbles()
@@ -2139,7 +2190,7 @@ def main():
 	writeRenameEnclosures("19","renameenclosures")
 	#20 Create Volume Template
 	#21 Create Volumes
-
+	#22	Add Hypervisors
 	
 #start
 main()
