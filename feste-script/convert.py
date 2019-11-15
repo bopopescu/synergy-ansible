@@ -41,6 +41,7 @@ restDomain = "LOCAL"
 
 variablesAll = []
 variablesNimbleAll = {}
+variablesSynergyNimbleAll = {}
 variablesHypervisorAll = {}
 varaiblesClustersAll = []
 
@@ -266,6 +267,73 @@ def findHypervisor():
 		#found valid line
 		if(not name in varaiblesClustersAll):
 			varaiblesClustersAll.append(name)	
+
+
+
+
+def findSynergyNimbles():
+	global variablesSynergyNimbleAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabnimble)
+	
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Zone"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
+					continue
+				
+				tmp = {"column":col,"letter":data[0]}
+				variablesSynergyNimbleAll[data[0]] = tmp
+			break
+	
+	#ehemals fillvariablesnimble
+	for l in variablesSynergyNimbleAll:
+		nimble = variablesSynergyNimbleAll[l]
+		variables = {}
+		start = False
+		end = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Storage system type"):
+				start = True
+				
+			if(not start):
+				continue
+				
+			if(end):
+				continue
+				
+			if(name=="Networks"):
+				end = True
+			
+			#found valid line
+			columnDataInt = nimble["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+
+			
+			variables[name] = data
+		nimble["variables"] = variables
 
 def findNimbles():
 	global variablesNimbleAll
@@ -1038,38 +1106,31 @@ def writeStoragesystem(nr,filenamepart):
 		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
-		#BEGIN
-		"""
-		storage_system_name:  a-dcb-sto0100.ad.nublar.de
-		storage_system_user:  oneview
-		storage_system_pass:  Concat123
-		storage_pool_name:    default
-		iscsi_a_network_name: iSCSI-A
-		iscsi_b_network_name: iSCSI-B
-		"""
 
-		outfile.write('  - name: Find iSCSI-A Network Name and URI\n')	
-		outfile.write('    oneview_ethernet_network_facts:\n')	
-		outfile.write('      config: "{{ config }}"\n')	
-		outfile.write('      name: "{{ iscsi_a_network_name }}"\n')	
-		outfile.write('  - set_fact: iscsi_a_network_uri="{{ ethernet_networks.uri }}"\n')	
-		outfile.write('\n')	
-		outfile.write('  - name: Find iSCSI-B Network Name and URI\n')	
-		outfile.write('    oneview_ethernet_network_facts:\n')	
-		outfile.write('      config: "{{ config }}"\n')	
-		outfile.write('      name: "{{ iscsi_b_network_name }}"\n')	
-		outfile.write('  - set_fact: iscsi_b_network_uri="{{ ethernet_networks.uri }}"\n')	
-		outfile.write('\n')	
+		#BEGIN
+		networks = variablesSynergyNimbleAll[frame["letter"]]["variables"]["networks"].split(",")
+		for i in range(len(networks)):
+			outfile.write('  - name: Find '+networks[i]+' Network URI\n')	
+			outfile.write('    oneview_ethernet_network_facts:\n')	
+			outfile.write('      config: "{{ config }}"\n')	
+			outfile.write('      name: "'+networks[i]+'"\n')	
+			outfile.write('  - set_fact: var_iscsi_'+str(i)+'_network_uri="{{ ethernet_networks.uri }}"\n')	
+			outfile.write('\n')	
+			
+		extensionstring = ""
+		for i in range(len(networks)):
+			extensionstring = extensionstring+' | assign_nimble_port('+networks[i]+',var_iscsi_'+str(i)+'_network_uri)'
+		
 		outfile.write('  - name: Add Nimble Storage System\n')	
 		outfile.write('    oneview_storage_system:\n')	
 		outfile.write('      config: "{{ config }}"\n')	
 		outfile.write('      state: present\n')	
 		outfile.write('      data:\n')	
-		outfile.write('        hostname: "{{ storage_system_name }}"\n')	
+		outfile.write('        hostname: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["group_management_ip_or_host_name"]+'"\n')	
 		outfile.write('        family: Nimble\n')	
 		outfile.write('        credentials:\n')	
-		outfile.write('          username: "{{ storage_system_user }}"\n')	
-		outfile.write('          password: "{{ storage_system_pass }}"\n')	
+		outfile.write('          username: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["username"]+'"\n')	
+		outfile.write('          password: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["password"]+'"\n')	
 		outfile.write('    register: result\n')	
 		outfile.write('  - set_fact: storage_system_uri="{{ result.ansible_facts.storage_system.uri }}"\n')	
 		outfile.write('\n')	
@@ -1079,7 +1140,7 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('      state: present\n')	
 		outfile.write('      data:\n')	
 		outfile.write('        storageSystemUri: "{{ storage_system_uri }}"\n')	
-		outfile.write('        name: "{{ storage_pool_name }}"\n')	
+		outfile.write('        name: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["storage_pool_name"]+'"\n')	
 		outfile.write('        isManaged: true\n')	
 		outfile.write('\n')
 		outfile.write('  - name: Retrieve Nimble System as JSON\n')
@@ -1091,10 +1152,10 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}"\n')
 		outfile.write('      method: GET\n')
 		outfile.write('    register: nimble\n')
-		outfile.write('\n')	
+		outfile.write('\n')			
 		outfile.write('  - name: Populate Nimble Ports with Network URIs\n')
 		outfile.write('    set_fact:\n')
-		outfile.write('      nimble_with_ports: "{{ nimble.json | assign_nimble_port(iscsi_a_network_name,iscsi_a_network_uri) | assign_nimble_port(iscsi_b_network_name,iscsi_b_network_uri) }}"\n')
+		outfile.write('      nimble_with_ports: "{{ nimble.json'+extensionstring+' }}"\n')
 		outfile.write('\n')
 		outfile.write('  - name: Update Nimble System \n')
 		outfile.write('    uri:\n')
@@ -1195,8 +1256,6 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		outfile.close()
 		
 		
-		
-		
 def writeUploadGI(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1215,10 +1274,7 @@ def writeUploadGI(nr,filenamepart):
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
 		#END
-		outfile.close()
-		
-		
-		
+		outfile.close()	
 
 
 def writeCreatedeploymentplan(nr,filenamepart):		
@@ -2057,29 +2113,30 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 		#END
 		
 def main():
-	findFrames()	
-	findNimbles()	
-	findHypervisor()	
+	findFrames()
+	findNimbles()
+	findSynergyNimbles()
+	findHypervisor()
 	writeConfigs()
-	writeTimelocale("01","ntp") #todo: test
+	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
-	writeAddHypervisorManager("03","addhypervisormanager") #todo: test
+	writeAddHypervisorManager("03","addhypervisormanager")
 	writeCreatenetwork("04","ethernetnetworkwithassociatedsubnet")
 	writeOSdeploymentServer("05","osds")
 	writeNetworkset("06","networkset")
-	writeLogicalInterconnectGroup("07","logicalinterconnectgroup") #https://github.com/HewlettPackard/oneview-ansible/blob/master/examples/synergy_environment_setup.yml
+	writeLogicalInterconnectGroup("07","logicalinterconnectgroup")
 	writeEnclosureGroup("08","enclosuregroup")
 	writeLogicalEnclosure("09","logicalenclosure")
-	writeStoragesystem("10","storagesystem") #todo umsetzung via RESR-API
+	writeStoragesystem("10","storagesystem")
 	writeAddFirmwareBundle("11","addfirmwarebundle")
 	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 	writeUploadGI("14","uploadGI")
 	writeCreatedeploymentplan("15","createdeploymentplan")
-	writeRenameServerHardwareTypes("16","renameserverhardwaretypes") #todo: test
-	writeCreateServerProfileTemplate("17","createserverprofiletemplate") #todo: implement
-	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo umsetzung via RESR-API
-	writeRenameEnclosures("19","renameenclosures") #todo: test
+	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
+	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
+	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo Umsetzung via REST-API
+	writeRenameEnclosures("19","renameenclosures")
 	#20 Create Volume Template
 	#21 Create Volumes
 
