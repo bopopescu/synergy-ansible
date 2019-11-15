@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import json
 class FilterModule(object):
     def filters(self):
