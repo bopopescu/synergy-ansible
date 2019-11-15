@@ -32,6 +32,8 @@ exceltabstorage = "Nimble"
 exceltabhypervisor = "Synergy-VMware"
 exceltabnimble = "Synergy-Nimble"
 outputfolder = "output"
+restApiVersion = "1000"
+restDomain = "LOCAL"
 
 ############################################################################
 ############## Only change Variables above this line #######################
@@ -404,7 +406,7 @@ def writeConfigs():
 		outfile.write("        \"password\": \""+frame["variables"]["administrator_passwort"]+"\""+"\n")
 		outfile.write("    },"+"\n")
 		outfile.write("    \"image_streamer_ip\": \"\","+"\n") #todo, bleibt erstmal leer
-		outfile.write("    \"api_version\": 1000"+"\n")
+		outfile.write('    "api_version": "'+restApiVersion+'"\n')
 		outfile.write("}"+"\n")
 		outfile.close()
 	
@@ -1023,7 +1025,7 @@ def writeLogicalEnclosure(nr,filenamepart):
 		outfile.write('        enclosureGroupUri: "{{ var_enclosure_group_uri }}"'+"\n")
 		outfile.write('        firmwareBaselineUri: "{{ firmware_baseline_uri }}"'+"\n")
 		outfile.write('    delegate_to: localhost'+"\n")
-		outfile.write("\n")
+		outfile.write('\n')
 		#END
 		outfile.close()
 		
@@ -1033,23 +1035,85 @@ def writeStoragesystem(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
 		#BEGIN
-		outfile.write('     - name: Create a Storage System "group2" '+"\n")
-		outfile.write('       oneview_storage_system:'+"\n")
-		outfile.write('         config: "{{ config }}"'+"\n")
-		outfile.write('         state: present'+"\n")
-		outfile.write('         data:'+"\n")
-		outfile.write('           credentials:'+"\n")
-		outfile.write('             ip_hostname:               "'+variablesNimbleAll[frame["letter"]]["name"].lower()+'.'+variablesNimbleAll[frame["letter"]]["variables"]["domain_name"]+'"'+"\n")
-		outfile.write('             username:                  "oneview"'+"\n")
-		outfile.write('             password:                  "'+frame["variables"]["administrator_passwort"]+'"'+"\n")
-		outfile.write('           managedPools:                  ""'+"\n")
-		outfile.write('             domain:                  "default"'+"\n")
-		outfile.write('             name:                    ""'+"\n")
-		outfile.write('       delegate_to: localhost'+"\n")
-		outfile.write("\n")
+		"""
+		storage_system_name:  a-dcb-sto0100.ad.nublar.de
+		storage_system_user:  oneview
+		storage_system_pass:  Concat123
+		storage_pool_name:    default
+		iscsi_a_network_name: iSCSI-A
+		iscsi_b_network_name: iSCSI-B
+		"""
+
+		outfile.write('  - name: Find iSCSI-A Network Name and URI\n')	
+		outfile.write('    oneview_ethernet_network_facts:\n')	
+		outfile.write('      config: "{{ config }}"\n')	
+		outfile.write('      name: "{{ iscsi_a_network_name }}"\n')	
+		outfile.write('  - set_fact: iscsi_a_network_uri="{{ ethernet_networks.uri }}"\n')	
+		outfile.write('\n')	
+		outfile.write('  - name: Find iSCSI-B Network Name and URI\n')	
+		outfile.write('    oneview_ethernet_network_facts:\n')	
+		outfile.write('      config: "{{ config }}"\n')	
+		outfile.write('      name: "{{ iscsi_b_network_name }}"\n')	
+		outfile.write('  - set_fact: iscsi_b_network_uri="{{ ethernet_networks.uri }}"\n')	
+		outfile.write('\n')	
+		outfile.write('  - name: Add Nimble Storage System\n')	
+		outfile.write('    oneview_storage_system:\n')	
+		outfile.write('      config: "{{ config }}"\n')	
+		outfile.write('      state: present\n')	
+		outfile.write('      data:\n')	
+		outfile.write('        hostname: "{{ storage_system_name }}"\n')	
+		outfile.write('        family: Nimble\n')	
+		outfile.write('        credentials:\n')	
+		outfile.write('          username: "{{ storage_system_user }}"\n')	
+		outfile.write('          password: "{{ storage_system_pass }}"\n')	
+		outfile.write('    register: result\n')	
+		outfile.write('  - set_fact: storage_system_uri="{{ result.ansible_facts.storage_system.uri }}"\n')	
+		outfile.write('\n')	
+		outfile.write('  - name: Manage Nimble Storage Pool\n')	
+		outfile.write('    oneview_storage_pool:\n')	
+		outfile.write('      config: "{{ config }}"\n')	
+		outfile.write('      state: present\n')	
+		outfile.write('      data:\n')	
+		outfile.write('        storageSystemUri: "{{ storage_system_uri }}"\n')	
+		outfile.write('        name: "{{ storage_pool_name }}"\n')	
+		outfile.write('        isManaged: true\n')	
+		outfile.write('\n')
+		outfile.write('  - name: Retrieve Nimble System as JSON\n')
+		outfile.write('    uri:\n')
+		outfile.write('      headers:\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('        Auth: "{{ auth_token }}"\n')
+		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('    register: nimble\n')
+		outfile.write('\n')	
+		outfile.write('  - name: Populate Nimble Ports with Network URIs\n')
+		outfile.write('    set_fact:\n')
+		outfile.write('      nimble_with_ports: "{{ nimble.json | assign_nimble_port(iscsi_a_network_name,iscsi_a_network_uri) | assign_nimble_port(iscsi_b_network_name,iscsi_b_network_uri) }}"\n')
+		outfile.write('\n')
+		outfile.write('  - name: Update Nimble System \n')
+		outfile.write('    uri:\n')
+		outfile.write('      headers:\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('        Auth: "{{ auth_token }}"\n')
+		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}"\n')
+		outfile.write('      method: PUT\n')
+		outfile.write('      body: "{{ nimble_with_ports }}"\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      status_code: 202\n')
+		outfile.write('    register: nimble\n')
+		outfile.write('\n')
+		outfile.write('  - debug: var=nimble\n')
+		outfile.write('\n')
+
+
+
 		#END
 		outfile.close()
 		
@@ -1242,7 +1306,7 @@ def writeFilepartRESTAPILogin(outfile,host,username,password):
 		outfile.write('    uri:\n')
 		outfile.write('      validate_certs: no\n')
 		outfile.write('      headers:\n')
-		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 		outfile.write('        Content-Type: application/json\n')
 		outfile.write('      url: https://'+host+'/rest/login-sessions\n')
 		outfile.write('      method: POST\n')
@@ -1276,7 +1340,7 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('      validate_certs: no\n')
 		outfile.write('      headers:\n')
 		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 		outfile.write('        Content-Type: application/json\n')
 		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/hypervisor-managers\n')
 		outfile.write('      method: POST\n')
@@ -1306,7 +1370,7 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('      validate_certs: no\n')
 		outfile.write('      headers:\n')
 		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 		outfile.write('        Content-Type: application/json\n')
 		outfile.write('      url: \'{{ var_return["location"] }}\'\n')
 		outfile.write('      method: GET\n')
@@ -1458,7 +1522,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('      validate_certs: no\n')
 		outfile.write('      headers:\n')
 		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 		outfile.write('        Content-Type: application/json\n')
 		outfile.write('      url: https://'+hostname+'/rest/hypervisor-managers\n')
 		outfile.write('      method: GET\n')
@@ -1476,7 +1540,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('      validate_certs: no\n')
 		outfile.write('      headers:\n')
 		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: 1000\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 		outfile.write('        Content-Type: application/json\n')
 		outfile.write('      url: https://'+hostname+'/rest/server-profile-templates\n')
 		outfile.write('      method: GET\n')
@@ -1501,7 +1565,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('      validate_certs: no\n')
 			outfile.write('      headers:\n')
 			outfile.write('        Auth: "{{ var_token }}"\n')
-			outfile.write('        X-Api-Version: 1000\n')
+			outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 			outfile.write('        Content-Type: application/json\n')
 			outfile.write('      url: https://'+hostname+'/rest/hypervisor-cluster-profiles\n')
 			outfile.write('      method: POST\n')
