@@ -376,8 +376,6 @@ def writeFileheader(outfile,configFileName):
 	outfile.write("\n")
 		
 
-
-
 def writeFilepartRESTAPILogin(outfile,host,username,password):
 		outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
 		outfile.write('    uri:\n')
@@ -400,10 +398,6 @@ def writeFilepartRESTAPILogin(outfile,host,username,password):
 		outfile.write('  - debug:\n')
 		outfile.write('      var: var_token\n')
 		outfile.write('\n')
-
-
-
-
 
 
 
@@ -1945,8 +1939,8 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
 		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
 		
-		#BEGIN get Hypervisor managers
-		outfile.write('  - name: get Hypervisor managers\n')
+		#BEGIN get Facts
+		outfile.write('  - name: get Hypervisor manager uri\n')
 		outfile.write('    uri:\n')
 		outfile.write('      validate_certs: no\n')
 		outfile.write('      headers:\n')
@@ -1961,23 +1955,15 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('    register: var_hypervisor_managers\n')
 		outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
 		outfile.write('\n')
-		
-		#BEGIN get Server Profile Templates
-		outfile.write('  - name: get Server Profile Templates\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+hostname+'/rest/server-profile-templates\n')
-		outfile.write('      method: GET\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('      status_code: 200\n')
-		outfile.write('    register: var_server_profile_templates\n')
-		
-		#outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
+		outfile.write('    - name: Gather Server Profile Template Nublar_ESXi uri\n')
+		outfile.write('      oneview_server_profile_template_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        name: "Nublar_ESXi"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('\n')
+		outfile.write('    - debug: var=server_profile_templates[0]["name"]\n')
+		outfile.write('    - debug: var=server_profile_templates[0]["uri"]\n')
+		outfile.write('    - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
 		outfile.write('\n')
 		
 		for cluster in varaiblesClustersAll:
@@ -1996,8 +1982,6 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('      method: POST\n')
 			outfile.write('      body_format: json\n')
 			outfile.write('      body:\n')
-			
-			#BEGIN SET BODY
 			outfile.write('        type: HypervisorClusterProfileV3\n')
 			outfile.write('        name: "'+cluster+'"\n')
 			outfile.write('        description: ""\n')
@@ -2019,12 +2003,24 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["multi_nic_vmotion"]=="Enabled") else "false")+'\n')
 			outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
 			outfile.write('        hypervisorHostProfileTemplate:\n')
-			outfile.write('          serverProfileTemplateUri: "{{ spt_uri }}"\n') #CODE depends on step 17
+			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
 			outfile.write('          deploymentPlan:\n')
 			outfile.write('            serverPassword: "{{ serverPassword }}"\n')
 			outfile.write('            deploymentCustomArgs: []\n')
 			outfile.write('          hostprefix: "{{ hvcp_name }}"\n')
+			outfile.write('          hostConfigPolicy:\n')
+			outfile.write('            leaveHostInMaintenance: false\n')
+			outfile.write('            useHostnameToRegister: true\n')
+			outfile.write('          virtualSwitchConfigPolicy:\n')
+			outfile.write('            manageVirtualSwitches: true\n')
+			outfile.write('            configurePortGroups: true\n')
 			outfile.write('          virtualSwitches:\n')
+			
+			
+			
+			
+			
+			
 			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches
 			outfile.write('          - name: "{{ vswitch_name }}"\n')
 			outfile.write('            virtualSwitchType: Standard\n')
@@ -2057,6 +2053,13 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('            networkUris:\n')
 			outfile.write('            - "{{ network_uri }}"\n')
 			outfile.write('\n')          #CODE Loop_end      
+			
+			
+			
+			
+			
+			
+			
 			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
 			outfile.write('          - name: "{{ vswitch_name }}"\n')
 			outfile.write('            virtualSwitchType: Distributed\n')
@@ -2085,13 +2088,9 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('            networkUris:\n')
 			outfile.write('            - "{{ networkset_uri }}"\n')
 			outfile.write('\n')        #CODE Loop_end
-			outfile.write('          hostConfigPolicy:\n')
-			outfile.write('            leaveHostInMaintenance: false\n')
-			outfile.write('            useHostnameToRegister: true\n')
-			outfile.write('          virtualSwitchConfigPolicy:\n')
-			outfile.write('            manageVirtualSwitches: true\n')
-			outfile.write('            configurePortGroups: true\n')
-			#END BODY
+			
+			
+			
 			
 			outfile.write('      status_code: 202\n')
 			outfile.write('    register: var_return\n')
