@@ -1226,7 +1226,7 @@ def writeStoragesystem(nr,filenamepart):
 			
 		extensionstring = ""
 		for i in range(len(networks)):
-			extensionstring = extensionstring+' | assign_nimble_port('+networks[i]+',var_iscsi_'+str(i)+'_network_uri)'
+			extensionstring = extensionstring+' | assign_nimble_port("'+networks[i]+'",var_iscsi_'+str(i)+'_network_uri)'
 		
 		outfile.write('  - name: Add Nimble Storage System\n')	
 		outfile.write('    oneview_storage_system:\n')	
@@ -1255,7 +1255,7 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('      headers:\n')
 		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 		outfile.write('        Content-Type: application/json\n')
-		outfile.write('        Auth: "{{ auth_token }}"\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
 		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}"\n')
 		outfile.write('      method: GET\n')
 		outfile.write('    register: nimble\n')
@@ -1269,7 +1269,7 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('      headers:\n')
 		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
 		outfile.write('        Content-Type: application/json\n')
-		outfile.write('        Auth: "{{ auth_token }}"\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
 		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}"\n')
 		outfile.write('      method: PUT\n')
 		outfile.write('      body: "{{ nimble_with_ports }}"\n')
