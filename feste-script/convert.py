@@ -2383,7 +2383,7 @@ def writeCreateVolumes(nr,filenamepart):
 			outfile.write('            templateVersion: "1.0"\n')
 			outfile.write('            isDeduplicated: true\n')
 			outfile.write('            performancePolicy: "{{ performance_policy }}"\n')
-			outfile.write('           folder:\n')
+			outfile.write('            folder:\n')
 			outfile.write('            volumeSet:\n')
 			outfile.write('            isEncrypted: false\n')
 			outfile.write('            isPinned: false\n')
