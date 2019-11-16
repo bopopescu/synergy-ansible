@@ -17,12 +17,18 @@
 - hosts: all
   vars:
     config: "{{ playbook_dir }}/oneview_config.json"
+    rest_url: a-dcb-syn0001.ad.nublar.de
+    rest_user: Administrator
+    rest_pass: Concat123
+    rest_domain: LOCAL
+    rest_api_version: 1000
     storage_system_name:  a-dcb-sto0100.ad.nublar.de
     storage_system_user:  oneview
     storage_system_pass:  Concat123
     storage_pool_name:    default
     iscsi_a_network_name: iSCSI-A
     iscsi_b_network_name: iSCSI-B
+
   tasks:
     - name: Find iSCSI-A Network Name and URI
       oneview_ethernet_network_facts:
@@ -57,6 +63,58 @@
            storageSystemUri: '{{ storage_system_uri }}'
            name: '{{ storage_pool_name }}'
            isManaged: true
+
+    - name: Login to API and retrieve AUTH-Token
+      uri:
+        headers:
+          X-Api-Version: "{{ rest_api_version }}"
+          Content-Type: application/json
+        url: "https://{{ rest_url }}/rest/login-sessions"
+        method: POST
+        body_format: json
+        body:
+          authLoginDomain: "{{ rest_domain }}"
+          userName: "{{ rest_user }}"
+          password: "{{ rest_pass }}"
+          loginMsgAck: "true"
+      register: var_this
+
+    - set_fact: auth_token='{{ var_this["json"]["sessionID"] }}'
+
+    - name: Retrieve Nimble System as JSON
+      uri:
+        headers:
+          X-Api-Version: "{{ rest_api_version }}"
+          Content-Type: application/json
+          Auth: "{{ auth_token }}"
+        url: "https://{{ rest_url }}/{{ storage_system_uri }}"
+        method: GET
+      register: nimble
+
+    - name: Populate Nimble Ports with Network URIs
+      set_fact:
+        nimble_with_ports: "{{ nimble.json | assign_nimble_port(iscsi_a_network_name,iscsi_a_network_uri) | assign_nimble_port(iscsi_b_network_name,iscsi_b_network_uri) }}"
+
+    - name: Update Nimble System 
+      uri:
+        headers:
+          X-Api-Version: "{{ rest_api_version }}"
+          Content-Type: application/json
+          Auth: "{{ auth_token }}"
+        url: "https://{{ rest_url }}/{{ storage_system_uri }}"
+        method: PUT
+        body: "{{ nimble_with_ports }}"
+        body_format: json
+        status_code: 202
+      register: nimble
+
+    - debug: var=nimble
+
+
+
+
+
+
 
 
 

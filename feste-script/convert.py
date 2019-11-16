@@ -32,6 +32,8 @@ exceltabstorage = "Nimble"
 exceltabhypervisor = "Synergy-VMware"
 exceltabnimble = "Synergy-Nimble"
 outputfolder = "output"
+restApiVersion = "1000"
+restDomain = "LOCAL"
 
 ############################################################################
 ############## Only change Variables above this line #######################
@@ -39,7 +41,9 @@ outputfolder = "output"
 
 variablesAll = []
 variablesNimbleAll = {}
+variablesSynergyNimbleAll = {}
 variablesHypervisorAll = {}
+variablesClustersAll = []
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -49,10 +53,300 @@ os.chdir(dname)
 
 
 
+############################################################################
+############## Small helper functions ######################################
+############################################################################
 
 def columnCharToInt(c):
 	c = c.lower()
 	return string.ascii_lowercase.index(c)
+
+
+def convertToAnsibleVariableName(n):
+	n = str(n)
+	n = n.lower().replace(" ","_").replace("-","_")
+	n = re.sub(r'\W+', '', n)
+	return n
+
+############################################################################
+############## Parse Excel functions #######################################
+############################################################################
+
+def findFrames():
+	global variablesAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabgeneral)
+	
+
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="OneView Hostname"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+					continue
+					
+				tmp = {"name":data,"column":col,"letter":data[0]}
+				variablesAll.append(tmp)
+			break
+	
+	#ehemals fillvariables
+	for frame in variablesAll:
+		variables = {}
+		infocount = 0
+		foundGateway = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Infos"):
+				infocount = infocount + 1
+				continue
+
+			if(infocount!=1):
+				continue
+			
+			#found valid line
+			columnDataInt = frame["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+			if(name=="gateway"):
+				if(foundGateway):
+					continue
+				foundGateway = True
+			
+			variables[name] = data
+		frame["variables"] = variables
+
+
+
+def findNimbles():
+	global variablesNimbleAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabstorage)
+	
+
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Storage System Name"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
+					continue
+					
+				tmp = {"name":data,"column":col,"letter":data[0]}
+				variablesNimbleAll[data[0]] = tmp
+			break
+	
+	#ehemals fillvariablesnimble
+	for l in variablesNimbleAll:
+		nimble = variablesNimbleAll[l]
+		variables = {}
+		start = False
+		end = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Group name"):
+				start = True
+				
+			if(not start):
+				continue
+				
+			if(end):
+				continue
+				
+			if(name=="NTP (time) server IP address"):
+				end = True
+			
+			#found valid line
+			columnDataInt = nimble["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+
+			
+			variables[name] = data
+		nimble["variables"] = variables
+
+
+
+
+
+def findSynergyNimbles():
+	global variablesSynergyNimbleAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabnimble)
+	
+	columnNamesInt = columnCharToInt(columnNames)
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,columnNamesInt))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Zone"):
+			
+			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
+				data = str(worksheet.cell_value(row,col))
+				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
+					continue
+				
+				tmp = {"column":col,"letter":data[0]}
+				variablesSynergyNimbleAll[data[0]] = tmp
+			break
+	
+	#ehemals fillvariablesnimble
+	for l in variablesSynergyNimbleAll:
+		nimble = variablesSynergyNimbleAll[l]
+		variables = {}
+		start = False
+		for row in range(worksheet.nrows):
+			name = str(worksheet.cell_value(row,columnNamesInt))
+			
+			if(name==""):
+				continue
+				
+			if(name=="Storage system type"):
+				start = True
+				
+			if(not start):
+				continue
+			
+			#found valid line
+			columnDataInt = nimble["column"]
+			data = str(worksheet.cell_value(row,columnDataInt))
+			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+				continue
+			
+			if(data.find("#TODO") != -1):
+				pos = data.find("#TODO")
+				data = data[:pos-1]
+			
+			name = convertToAnsibleVariableName(name)			
+
+			
+			variables[name] = data
+		nimble["variables"] = variables
+
+
+
+
+def findHypervisor():
+	global variablesHypervisorAll,variablesClustersAll
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabhypervisor)
+
+	start = False
+	end = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,0))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Type"):
+			start = True
+			
+		if(not start):
+			continue
+			
+		if(end):
+			continue
+			
+		if(name=="High availability"):
+			end = True
+		
+		#found valid line
+		data = worksheet.cell_value(row,1)
+		if(isinstance(data,float)):
+			data = str(int(data))
+		
+		if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
+			continue
+		
+		if(data.find("#TODO") != -1):
+			pos = data.find("#TODO")
+			data = data[:pos-1]
+		
+		name = convertToAnsibleVariableName(name)			
+		variablesHypervisorAll[name] = data
+		
+		
+	#clusters
+	start = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,3))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Cluster"):
+			start = True
+			continue
+			
+		if(not start):
+			continue
+		
+		#found valid line
+		if(not name in variablesClustersAll):
+			variablesClustersAll.append(name)	
+
+
+
+############################################################################
+############## Write Config and Fileheaders functions ######################
+############################################################################
+
+
+def writeConfigs():
+	for frame in variablesAll:
+		configFile = outputfolder+"/"+config_prefx+frame["letter"]+config_sufix
+		outfile = open(configFile,'w')
+		outfile.write("{"+"\n")
+		outfile.write("    \"ip\": \""+frame["variables"]["oneview_hostname"].lower()+"."+frame["variables"]["domain_name"]+"\","+"\n")
+		outfile.write("    \"credentials\": {"+"\n")
+		outfile.write("        \"userName\": \"Administrator\","+"\n")
+		outfile.write("        \"password\": \""+frame["variables"]["administrator_passwort"]+"\""+"\n")
+		outfile.write("    },"+"\n")
+		outfile.write("    \"image_streamer_ip\": \"\","+"\n") #todo, bleibt erstmal leer
+		outfile.write('    "api_version": "'+restApiVersion+'"\n')
+		outfile.write("}"+"\n")
+		outfile.close()
 
 def writeFileheader(outfile,configFileName):
 	filename = os.path.basename(outfile.name)
@@ -75,7 +369,33 @@ def writeFileheader(outfile,configFileName):
 	outfile.write("\n")
 		
 
+def writeFilepartRESTAPILogin(outfile,host,username,password):
+	outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
+	outfile.write('    uri:\n')
+	outfile.write('      validate_certs: yes\n')
+	outfile.write('      headers:\n')
+	outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+	outfile.write('        Content-Type: application/json\n')
+	outfile.write('      url: https://'+host+'/rest/login-sessions\n')
+	outfile.write('      method: POST\n')
+	outfile.write('      body_format: json\n')
+	outfile.write('      body:\n')
+	outfile.write('        authLoginDomain: "'+restDomain+'"\n')
+	outfile.write('        password: "'+password+'"\n')
+	outfile.write('        userName: "'+username+'"\n')
+	outfile.write('        loginMsgAck: "true"\n')
+	outfile.write('    register: var_this\n')
+	outfile.write('\n')
+	outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
+	outfile.write('\n')
 
+
+
+############################################################################
+############## Create Playbooks functions ##################################
+############################################################################
+
+#01
 def writeTimelocale(nr,name):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+name+filename_sufix
@@ -94,6 +414,7 @@ def writeTimelocale(nr,name):
 		outfile.write("\n")
 		outfile.close()		
 
+#02
 def writeAddresspoolsubnet(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -126,6 +447,7 @@ def writeAddresspoolsubnet(nr,filenamepart):
 				variablesOneSubnet[variablesHead[col]] = val
 		writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet)
 		
+#02 helper
 def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):	
 	if(not "zone" in variablesOneSubnet):
 		print("variablesOneSubnet missing zone!")
@@ -200,203 +522,72 @@ def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):
 				outfile.write("             endAddress: "+variablesOneSubnet["rangeend"]+"\n")
 				outfile.write("       delegate_to: localhost\n")
 				outfile.write("\n")
-
 		outfile.close()
 
 
 
 
-
-
-			
-
-
-def findHypervisor():
-	global variablesHypervisorAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabhypervisor)
-
-	start = False
-	end = False
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,0))
-		
-		if(name==""):
-			continue
-			
-		if(name=="Type"):
-			start = True
-			
-		if(not start):
-			continue
-			
-		if(end):
-			continue
-			
-		if(name=="High availability"):
-			end = True
-		
-		#found valid line
-		data = worksheet.cell_value(row,1)
-		if(isinstance(data,float)):
-			data = str(int(data))
-		
-		if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-			continue
-		
-		if(data.find("#TODO") != -1):
-			pos = data.find("#TODO")
-			data = data[:pos-1]
-		
-		name = convertToAnsibleVariableName(name)			
-		variablesHypervisorAll[name] = data
-
-def findNimbles():
-	global variablesNimbleAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabstorage)
-	
-
-	columnNamesInt = columnCharToInt(columnNames)
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,columnNamesInt))
-		
-		if(name==""):
-			continue
-			
-		if(name=="Storage System Name"):
-			
-			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
-				data = str(worksheet.cell_value(row,col))
-				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO") or str(worksheet.cell_value(row-1,col))=="Bemerkungen"):
-					continue
-					
-				tmp = {"name":data,"column":col,"letter":data[0]}
-				variablesNimbleAll[data[0]] = tmp
-			break
-	
-	#ehemals fillvariablesnimble
-	for l in variablesNimbleAll:
-		nimble = variablesNimbleAll[l]
-		variables = {}
-		start = False
-		end = False
-		for row in range(worksheet.nrows):
-			name = str(worksheet.cell_value(row,columnNamesInt))
-			
-			if(name==""):
-				continue
-				
-			if(name=="Group name"):
-				start = True
-				
-			if(not start):
-				continue
-				
-			if(end):
-				continue
-				
-			if(name=="NTP (time) server IP address"):
-				end = True
-			
-			#found valid line
-			columnDataInt = nimble["column"]
-			data = str(worksheet.cell_value(row,columnDataInt))
-			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-				continue
-			
-			if(data.find("#TODO") != -1):
-				pos = data.find("#TODO")
-				data = data[:pos-1]
-			
-			name = convertToAnsibleVariableName(name)			
-
-			
-			variables[name] = data
-		nimble["variables"] = variables
-
-def findFrames():
-	global variablesAll
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabgeneral)
-	
-
-	columnNamesInt = columnCharToInt(columnNames)
-	for row in range(worksheet.nrows):
-		name = str(worksheet.cell_value(row,columnNamesInt))
-		
-		if(name==""):
-			continue
-			
-		if(name=="OneView Hostname"):
-			
-			for col in range(columnCharToInt(columnNames)+1,worksheet.ncols):
-				data = str(worksheet.cell_value(row,col))
-				if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-					continue
-					
-				tmp = {"name":data,"column":col,"letter":data[0]}
-				variablesAll.append(tmp)
-			break
-	
-	#ehemals fillvariables
+#03
+def writeAddHypervisorManager(nr,filenamepart):		
 	for frame in variablesAll:
-		variables = {}
-		infocount = 0
-		foundGateway = False
-		for row in range(worksheet.nrows):
-			name = str(worksheet.cell_value(row,columnNamesInt))
-			
-			if(name==""):
-				continue
-				
-			if(name=="Infos"):
-				infocount = infocount + 1
-				continue
-
-			if(infocount!=1):
-				continue
-			
-			#found valid line
-			columnDataInt = frame["column"]
-			data = str(worksheet.cell_value(row,columnDataInt))
-			if(data=="" or data=="#TODO" or data=="n/a" or data.startswith("#TODO")):
-				continue
-			
-			if(data.find("#TODO") != -1):
-				pos = data.find("#TODO")
-				data = data[:pos-1]
-			
-			name = convertToAnsibleVariableName(name)			
-			if(name=="gateway"):
-				if(foundGateway):
-					continue
-				foundGateway = True
-			
-			variables[name] = data
-		frame["variables"] = variables
-
-
-def writeConfigs():
-	for frame in variablesAll:
-		configFile = outputfolder+"/"+config_prefx+frame["letter"]+config_sufix
-		outfile = open(configFile,'w')
-		outfile.write("{"+"\n")
-		outfile.write("    \"ip\": \""+frame["variables"]["oneview_hostname"].lower()+"."+frame["variables"]["domain_name"]+"\","+"\n")
-		outfile.write("    \"credentials\": {"+"\n")
-		outfile.write("        \"userName\": \"Administrator\","+"\n")
-		outfile.write("        \"password\": \""+frame["variables"]["administrator_passwort"]+"\""+"\n")
-		outfile.write("    },"+"\n")
-		outfile.write("    \"image_streamer_ip\": \"\","+"\n") #todo, bleibt erstmal leer
-		outfile.write("    \"api_version\": 1000"+"\n")
-		outfile.write("}"+"\n")
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		writeFilepartRESTAPILogin(outfile,frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"],"Administrator",frame["variables"]["administrator_passwort"])
+		
+		
+		#BEGIN
+		outfile.write('  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/hypervisor-managers\n')
+		outfile.write('      method: POST\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('        type: "HypervisorManagerV2"\n')
+		outfile.write('        name: "'+variablesHypervisorAll["hostname"]+'"\n')
+		outfile.write('        username: "'+variablesHypervisorAll["username"]+'"\n')
+		outfile.write('        password: "'+variablesHypervisorAll["password"]+'"\n')
+		outfile.write('        hypervisorType: "Vmware"\n')
+		outfile.write('        preferences:\n')
+		outfile.write('          type: "Vmware"\n')
+		outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
+		outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
+		outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
+		outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
+		outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["multi_nic_vmotion"]=="Enabled") else "false")+'\n')
+		outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
+		outfile.write('      status_code: 202\n')
+		outfile.write('    register: var_return\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_return\n')
+		outfile.write('\n')
+		outfile.write('  - name: Taskinfo\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: \'{{ var_return["location"] }}\'\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_taskinfo\n')
+		outfile.write('\n')
+		outfile.write('  - debug:\n')
+		outfile.write('      var: var_taskinfo\n')
+		outfile.write('\n')
+		#END
 		outfile.close()
-	
+		
 
 
+#04
 def writeCreatenetwork(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -433,7 +624,7 @@ def writeCreatenetwork(nr,filenamepart):
 				variablesOneNet[variablesHead[col]] = val
 		writeCreatenetworkOne(nr,filenamepart,variablesOneNet)
 
-
+#04 helper
 def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):	
 	if(not "zone" in variablesOneNet):
 		print("variablesOneNet missing zone!")
@@ -458,9 +649,6 @@ def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
 		if(variablesOneNet["zone"].find(frame["letter"]) != -1):
 			
 			if(variablesOneNet["ipv4subnet"]!="None"):
-			
-			
-			
 				outfile.write("    - name: Gather facts about ID Pools IPV4 Subnets by name\n")
 				outfile.write("      oneview_id_pools_ipv4_subnet_facts:\n")
 				outfile.write("        config: \"{{ config }}\"\n")
@@ -492,13 +680,95 @@ def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
 			outfile.write("\n")
 		
 		outfile.close()
+
+#05
+def writeOSdeploymentServer(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		
-def convertToAnsibleVariableName(n):
-	n = str(n)
-	n = n.lower().replace(" ","_").replace("-","_")
-	n = re.sub(r'\W+', '', n)
-	return n
-		
+		#BEGIN
+		outfile.write('    - name: Ensure that the Deployment Server is present'+"\n")
+		outfile.write('      oneview_os_deployment_server:'+"\n")
+		outfile.write('        config: "{{ config }}"'+"\n")
+		outfile.write('        state: present'+"\n")
+		outfile.write('        data:'+"\n")
+		outfile.write('          name: "'+frame["variables"]["oneview_hostname"]+'_OSDS"'+"\n")
+		outfile.write('          mgmtNetworkName: "oob-mgmt"'+"\n")
+		outfile.write('          applianceName: "'+frame["letter"]+'-Master2, appliance 2"'+"\n")
+		outfile.write('          deplManagersType: "Image Streamer"'+"\n")
+		outfile.write(''+"\n")
+		outfile.write('    - debug: var=os_deployment_server'+"\n")
+		outfile.write("\n")
+		#END
+		outfile.close()
+
+
+#06
+def writeNetworkset(nr,filenamepart):
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabnets)
+	
+	variablesHead = []
+	variables = []
+	networksets = []
+	
+	for col in range(worksheet.ncols):
+		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
+		variablesHead.append(name)
+	
+	for row in range(1,worksheet.nrows):
+		variablesOneNet = {}
+		for col in range(worksheet.ncols):
+			val = worksheet.cell_value(row,col)
+			
+			if(isinstance(val,float)):
+				val = str(int(val))
+			
+			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
+				val = ""
+			
+			if(val.find("#TODO") != -1):
+				pos = val.find("#TODO")
+				val = val[:pos-1]
+			
+			variablesOneNet[variablesHead[col]] = val
+			
+			if(variablesHead[col]=="networkset"):
+				if(val!=""):
+					if(not val in networksets):
+						networksets.append(val)
+			
+		variables.append(variablesOneNet)
+	
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+
+		#BEGIN
+		for networkset in networksets:
+			outfile.write('    - name: Create Network Set '+networkset+"\n")
+			outfile.write('      oneview_network_set:'+"\n")
+			outfile.write('        config: "{{ config }}"'+"\n")
+			outfile.write('        state: present'+"\n")
+			outfile.write('        data:'+"\n")
+			outfile.write('          type: "network-setV4"'+"\n")
+			outfile.write('          name: "'+networkset+'"'+"\n")
+			outfile.write('          networkUris:'+"\n") # it is possible to pass names instead of URIs
+			for v in variables:
+				if(v["networkset"] == networkset):
+					if(frame["letter"] in v["zone"]):
+						outfile.write('            - '+v["name"]+"\n")
+			outfile.write('      delegate_to: localhost'+"\n")
+			outfile.write("\n")
+		#END
+		outfile.close()
+
+
+#07
 def writeLogicalInterconnectGroup(nr,filenamepart):
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
@@ -763,92 +1033,8 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 		outfile.close()
 
 
-def writeOSdeploymentServer(nr,filenamepart):
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		
-		#BEGIN
-		outfile.write('  tasks:'+"\n")
-		outfile.write('    - name: Ensure that the Deployment Server is present'+"\n")
-		outfile.write('      oneview_os_deployment_server:'+"\n")
-		outfile.write('        config: "{{ config }}"'+"\n")
-		outfile.write('        state: present'+"\n")
-		outfile.write('        data:'+"\n")
-		outfile.write('          name: "'+frame["variables"]["oneview_hostname"]+'_OSDS"'+"\n")		 				#CODE oneview_hostname+"_OSDS"
-		outfile.write('          mgmtNetworkName: "oob-mgmt"'+"\n")
-		outfile.write('          applianceName: "'+frame["letter"]+'-Master2, appliance 2"'+"\n")		 #CODE Zone+"-Master2, appliance 2"
-		outfile.write('          deplManagersType: "Image Streamer"'+"\n")
-		outfile.write(''+"\n")
-		outfile.write('    - debug: var=os_deployment_server'+"\n")
-		outfile.write("\n")
-		#END
-		outfile.close()
-		
-def writeNetworkset(nr,filenamepart):
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabnets)
-	
-	variablesHead = []
-	variables = []
-	networksets = []
-	
-	for col in range(worksheet.ncols):
-		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
-		variablesHead.append(name)
-	
-	for row in range(1,worksheet.nrows):
-		variablesOneNet = {}
-		for col in range(worksheet.ncols):
-			val = worksheet.cell_value(row,col)
-			
-			if(isinstance(val,float)):
-				val = str(int(val))
-			
-			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
-				val = ""
-			
-			if(val.find("#TODO") != -1):
-				pos = val.find("#TODO")
-				val = val[:pos-1]
-			
-			variablesOneNet[variablesHead[col]] = val
-			
-			if(variablesHead[col]=="networkset"):
-				if(val!=""):
-					if(not val in networksets):
-						networksets.append(val)
-			
-		variables.append(variablesOneNet)
-	
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 
-		#BEGIN
-		for networkset in networksets:
-			outfile.write('    - name: Create Network Set '+networkset+"\n")
-			outfile.write('      oneview_network_set:'+"\n")
-			outfile.write('        config: "{{ config }}"'+"\n")
-			outfile.write('        state: present'+"\n")
-			outfile.write('        data:'+"\n")
-			outfile.write('          type: "network-setV4"'+"\n")
-			outfile.write('          name: "'+networkset+'"'+"\n")
-			outfile.write('          networkUris:'+"\n") # it is possible to pass names instead of URIs
-			for v in variables:
-				if(v["networkset"] == networkset):
-					if(frame["letter"] in v["zone"]):
-						outfile.write('            - '+v["name"]+"\n")
-			outfile.write('      delegate_to: localhost'+"\n")
-			outfile.write("\n")
-		#END
-		outfile.close()
-
-
-
+#08
 def writeEnclosureGroup(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -939,7 +1125,7 @@ def writeEnclosureGroup(nr,filenamepart):
 		outfile.close()
 	   
 	   
-
+#09
 def writeLogicalEnclosure(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1010,37 +1196,93 @@ def writeLogicalEnclosure(nr,filenamepart):
 		outfile.write('        enclosureGroupUri: "{{ var_enclosure_group_uri }}"'+"\n")
 		outfile.write('        firmwareBaselineUri: "{{ firmware_baseline_uri }}"'+"\n")
 		outfile.write('    delegate_to: localhost'+"\n")
-		outfile.write("\n")
+		outfile.write('\n')
 		#END
 		outfile.close()
 		
-		
 
+	
+#10
 def writeStoragesystem(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
+
 		#BEGIN
-		outfile.write('     - name: Create a Storage System "group2" '+"\n")
-		outfile.write('       oneview_storage_system:'+"\n")
-		outfile.write('         config: "{{ config }}"'+"\n")
-		outfile.write('         state: present'+"\n")
-		outfile.write('         data:'+"\n")
-		outfile.write('           credentials:'+"\n")
-		outfile.write('             ip_hostname:               "'+variablesNimbleAll[frame["letter"]]["name"].lower()+'.'+variablesNimbleAll[frame["letter"]]["variables"]["domain_name"]+'"'+"\n")
-		outfile.write('             username:                  "oneview"'+"\n")
-		outfile.write('             password:                  "'+frame["variables"]["administrator_passwort"]+'"'+"\n")
-		outfile.write('           managedPools:                  ""'+"\n")
-		outfile.write('             domain:                  "default"'+"\n")
-		outfile.write('             name:                    ""'+"\n")
-		outfile.write('       delegate_to: localhost'+"\n")
-		outfile.write("\n")
+		networks = variablesSynergyNimbleAll[frame["letter"]]["variables"]["networks"].split(",")
+		for i in range(len(networks)):
+			outfile.write('  - name: Find '+networks[i]+' Network URI\n')	
+			outfile.write('    oneview_ethernet_network_facts:\n')	
+			outfile.write('      config: "{{ config }}"\n')	
+			outfile.write('      name: "'+networks[i]+'"\n')	
+			outfile.write('  - set_fact: var_iscsi_'+str(i)+'_network_uri="{{ ethernet_networks.uri }}"\n')	
+			outfile.write('\n')	
+			
+		extensionstring = ""
+		for i in range(len(networks)):
+			extensionstring = extensionstring+' | assign_nimble_port("'+networks[i]+'",var_iscsi_'+str(i)+'_network_uri)'
+		
+		outfile.write('  - name: Add Nimble Storage System\n')	
+		outfile.write('    oneview_storage_system:\n')	
+		outfile.write('      config: "{{ config }}"\n')	
+		outfile.write('      state: present\n')	
+		outfile.write('      data:\n')	
+		outfile.write('        hostname: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["group_management_ip_or_host_name"]+'"\n')	
+		outfile.write('        family: Nimble\n')	
+		outfile.write('        credentials:\n')	
+		outfile.write('          username: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["username"]+'"\n')	
+		outfile.write('          password: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["password"]+'"\n')	
+		outfile.write('    register: result\n')	
+		outfile.write('  - set_fact: storage_system_uri="{{ result.ansible_facts.storage_system.uri }}"\n')	
+		outfile.write('\n')	
+		outfile.write('  - name: Manage Nimble Storage Pool\n')	
+		outfile.write('    oneview_storage_pool:\n')	
+		outfile.write('      config: "{{ config }}"\n')	
+		outfile.write('      state: present\n')	
+		outfile.write('      data:\n')	
+		outfile.write('        storageSystemUri: "{{ storage_system_uri }}"\n')	
+		outfile.write('        name: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["storage_pool_name"]+'"\n')	
+		outfile.write('        isManaged: true\n')	
+		outfile.write('\n')
+		outfile.write('  - name: Retrieve Nimble System as JSON\n')
+		outfile.write('    uri:\n')
+		outfile.write('      headers:\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('    register: nimble\n')
+		outfile.write('\n')			
+		outfile.write('  - name: Populate Nimble Ports with Network URIs\n')
+		outfile.write('    set_fact:\n')
+		outfile.write('      nimble_with_ports: \'{{ nimble.json'+extensionstring+' }}\'\n')
+		outfile.write('\n')
+		outfile.write('  - name: Update Nimble System \n')
+		outfile.write('    uri:\n')
+		outfile.write('      headers:\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}"\n')
+		outfile.write('      method: PUT\n')
+		outfile.write('      body: "{{ nimble_with_ports }}"\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      status_code: 202\n')
+		outfile.write('    register: nimble\n')
+		outfile.write('\n')
+		outfile.write('  - debug: var=nimble\n')
+		outfile.write('\n')
 		#END
 		outfile.close()
 		
 		
+		
+		
+#11
 def writeAddFirmwareBundle(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1059,7 +1301,8 @@ def writeAddFirmwareBundle(nr,filenamepart):
 		#END
 		outfile.close()
 		
-		
+
+#12
 def writeSetImagestreameripInConfig(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1088,6 +1331,7 @@ def writeSetImagestreameripInConfig(nr,filenamepart):
 		outfile.write('\n')
 		outfile.close()
 		
+#13
 def writeUploadAndExtractIsArtifact(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1104,7 +1348,6 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		outfile.write('          localArtifactBundleFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["artifact_bundle"]+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
-		
 		outfile.write('    - name: Extract an Artifact Bundle\n')
 		outfile.write('      image_streamer_artifact_bundle:\n')
 		outfile.write('        config: "{{ config }}"\n')
@@ -1113,13 +1356,10 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		outfile.write('          name: "'+frame["variables"]["artifact_bundle"].replace(".zip","")+'"\n')
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
-		
 		#END
 		outfile.close()
 		
-		
-		
-		
+#14
 def writeUploadGI(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1138,12 +1378,9 @@ def writeUploadGI(nr,filenamepart):
 		outfile.write('      delegate_to: localhost\n')
 		outfile.write('\n')
 		#END
-		outfile.close()
-		
-		
-		
+		outfile.close()	
 
-
+#15
 def writeCreatedeploymentplan(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1223,146 +1460,7 @@ def writeCreatedeploymentplan(nr,filenamepart):
 
 
 
-
-def writeFilepartRESTAPILogin(outfile,host,username,password):
-		outfile.write('  - name: Login to API and retrieve AUTH-Token\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        X-Api-Version: 1000\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+host+'/rest/login-sessions\n')
-		outfile.write('      method: POST\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('        authLoginDomain: "LOCAL"\n')
-		outfile.write('        password: "'+password+'"\n')
-		outfile.write('        userName: "'+username+'"\n')
-		outfile.write('        loginMsgAck: "true"\n')
-		outfile.write('    register: var_this\n')
-		outfile.write('\n')
-		outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_token\n')
-		outfile.write('\n')
-
-
-
-def writeAddHypervisorManager(nr,filenamepart):		
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		writeFilepartRESTAPILogin(outfile,frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"],"Administrator",frame["variables"]["administrator_passwort"])
-		
-		
-		#BEGIN
-		outfile.write('  - name: Initiate asynchronous registration of an external hypervisor manager with the appliance. (Using AUTH-Token) (Statuscode should be 202)\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: 1000\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: https://'+frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]+'/rest/hypervisor-managers\n')
-		outfile.write('      method: POST\n')
-		outfile.write('      body_format: json\n')
-		outfile.write('      body:\n')
-		outfile.write('        type: "HypervisorManagerV2"\n')
-		outfile.write('        name: "'+variablesHypervisorAll["hostname"]+'"\n')
-		outfile.write('        username: "'+variablesHypervisorAll["username"]+'"\n')
-		outfile.write('        password: "'+variablesHypervisorAll["password"]+'"\n')
-		outfile.write('        hypervisorType: "Vmware"\n')
-		outfile.write('        preferences:\n')
-		outfile.write('          type: "Vmware"\n')
-		outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
-		outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
-		outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
-		outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
-		outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["milti_nic_vmotion"]=="Enabled") else "false")+'\n')
-		outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
-		outfile.write('      status_code: 202\n')
-		outfile.write('    register: var_return\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_return\n')
-		outfile.write('\n')
-		outfile.write('  - name: Taskinfo\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: no\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: 1000\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: \'{{ var_return["location"] }}\'\n')
-		outfile.write('      method: GET\n')
-		outfile.write('      status_code: 200\n')
-		outfile.write('    register: var_taskinfo\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_taskinfo\n')
-		outfile.write('\n')
-		#END
-		outfile.close()
-		
-
-def writeRenameEnclosures(nr,filenamepart):		
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-
-		#BEGIN
-		outfile.write('    - name: Gather facts about all Enclosures\n')
-		outfile.write('      oneview_enclosure_facts:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('\n')
-		outfile.write('    - set_fact: enc_m1="{{ item }}"\n')
-		outfile.write('      loop: "{{ enclosures }}"\n')
-		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is none\n')
-		outfile.write('\n')
-		outfile.write('    - set_fact: enc_m2="{{ item }}"\n')
-		outfile.write('      loop: "{{ enclosures }}"\n')
-		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
-		outfile.write('\n')
-		outfile.write('    - set_fact: enc_sl="{{ item }}"\n')
-		outfile.write('      loop: "{{ enclosures }}"\n')
-		outfile.write('      when: item.applianceBays.0.model is none and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
-		outfile.write('\n')
-		outfile.write('    - name: Rename Enclosure Master-1\n')
-		outfile.write('      oneview_enclosure:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('        state: present\n')
-		outfile.write('        validate_etag: False\n')
-		outfile.write('        data:\n')
-		outfile.write('          name: "{{ enc_m1.name }}"\n')
-		outfile.write('          newName: "'+frame["letter"]+'-Master1"\n')
-		outfile.write('\n')
-		outfile.write('    - name: Rename Enclosure Master-2\n')
-		outfile.write('      oneview_enclosure:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('        state: present\n')
-		outfile.write('        validate_etag: False\n')
-		outfile.write('        data:\n')
-		outfile.write('          name: "{{ enc_m2.name }}"\n')
-		outfile.write('          newName: "'+frame["letter"]+'-Master2"\n')
-		outfile.write('\n')
-		outfile.write('    - name: Rename Enclosure Slave\n')
-		outfile.write('      oneview_enclosure:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('        state: present\n')
-		outfile.write('        validate_etag: False\n')
-		outfile.write('        data:\n')
-		outfile.write('          name: "{{ enc_sl.name }}"\n')
-		outfile.write('          newName: "'+frame["letter"]+'-Slave"\n')
-		outfile.write('\n')
-		#END
-		outfile.close()
-		
-		
-		
-		
+#16
 def writeRenameServerHardwareTypes(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1428,139 +1526,909 @@ def writeRenameServerHardwareTypes(nr,filenamepart):
 		outfile.close()
 		
 		
+		
+	
+#17
+def writeCreateServerProfileTemplate(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
 
+
+		#BEGIN
+		outfile.write('    - name: Gather facts about all Os Deployment Plans\n')
+		outfile.write('      oneview_os_deployment_plan_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('      delegate_to: localhost\n')
+		outfile.write('    - set_fact:         var_os_deployment_plans_0_name="{{os_deployment_plans[0]["name"]}}"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Find Deployment Plan URI\n')
+		outfile.write('      oneview_os_deployment_plan_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        name: "{{ var_os_deployment_plans_0_name }}"\n')
+		outfile.write('    - set_fact: deployment_plan_uri="{{ os_deployment_plans[0].uri }}"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Find Firmware Baseline URI\n')
+		outfile.write('      oneview_firmware_driver_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('    - set_fact: firmware_baseline_uri="{{ firmware_drivers[0].uri }}"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Find Network Set URI\n')
+		outfile.write('      oneview_network_set_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: prod_netset_uri="{{ item.uri }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{ network_sets }}"\n')
+		outfile.write('      when: item.name is match "set_Prod"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Gather network URIs\n')
+		outfile.write('      oneview_ethernet_network_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: deploy_network_uri="{{ item.uri }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{ ethernet_networks }}"\n')
+		outfile.write('      when: item.name is match "iSCSI-Deployment"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: management_network_uri="{{ item.uri }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{ ethernet_networks }}"\n')
+		outfile.write('      when: item.name is match "ib-mgmt"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: vmotion_network_uri="{{ item.uri }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{ ethernet_networks }}"\n')
+		outfile.write('      when: item.name is match "vSphereVMotion"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: iscsi_a_network_uri="{{ item.uri }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{ ethernet_networks }}"\n')
+		outfile.write('      when: item.name is match "iSCSI-A"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: iscsi_b_network_uri="{{ item.uri }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{ ethernet_networks }}"\n')
+		outfile.write('      when: item.name is match "iSCSI-B"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: ft_network_uri="{{ item.uri }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      loop: "{{ ethernet_networks }}"\n')
+		outfile.write('      when: item.name is match "vSphereFT"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Create Server Profile Template\n')
+		outfile.write('      oneview_server_profile_template:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          type: ServerProfileTemplateV6\n')
+		outfile.write('          name: "Nublar_ESXi"\n')
+		outfile.write('          description: "ESXi 6.7 Update 2 Build 13981272 mit NCM 6.1 und iSUT 2.4"\n')
+		outfile.write('          serverProfileDescription: ""\n')
+		outfile.write('          serverHardwareTypeName: "HypervisorNode"\n')
+		outfile.write('          enclosureGroupName: "Nublar_EG_3e"\n')
+		outfile.write('          affinity: Bay\n')
+		outfile.write('          hideUnusedFlexNics: true\n')
+		outfile.write('          macType: Virtual\n')
+		outfile.write('          wwnType: Virtual\n')
+		outfile.write('          serialNumberType: Virtual\n')
+		outfile.write('          iscsiInitiatorNameType: AutoGenerated\n')
+		outfile.write('          osDeploymentSettings:\n')
+		outfile.write('            osDeploymentPlanUri: "{{ deployment_plan_uri }}"\n')
+		outfile.write('            osCustomAttributes:\n')
+		outfile.write('            - name: DomainName\n')
+		outfile.write('              value: ad.nublar.de\n')
+		outfile.write('              constraints: \'{"helpText":""}\'\n')
+		outfile.write('              type: fqdn\n')
+		outfile.write('            - name: Hostname\n')
+		outfile.write('              value: ""\n')
+		outfile.write('              constraints: \'{"helpText":""}\'\n')
+		outfile.write('              type: hostname\n')
+		outfile.write('            - name: ManagementNIC.connectionid\n')
+		outfile.write('              value: "3"\n')
+		outfile.write('            - name: ManagementNIC.dns1\n')
+		outfile.write('              value: 10.40.72.10\n')
+		outfile.write('            - name: ManagementNIC.dns2\n')
+		outfile.write('              value: 10.40.72.11\n')
+		outfile.write('            - name: ManagementNIC.gateway\n')
+		outfile.write('              value: 10.40.195.254\n')
+		outfile.write('            - name: ManagementNIC.ipaddress\n')
+		outfile.write('              value: ""\n')
+		outfile.write('            - name: ManagementNIC.netmask\n')
+		outfile.write('              value: 255.255.254.0\n')
+		outfile.write('            - name: ManagementNIC.networkuri\n')
+		outfile.write('              value: "{{ management_network_uri }}"\n')
+		outfile.write('            - name: ManagementNIC.constraint\n')
+		outfile.write('              value: userspecified\n')
+		outfile.write('            - name: ManagementNIC.vlanid\n')
+		outfile.write('              value: "0"\n')
+		outfile.write('            - name: ManagementNIC2.connectionid\n')
+		outfile.write('              value: "4"\n')
+		outfile.write('            - name: ManagementNIC2.networkuri\n')
+		outfile.write('              value: "{{ management_network_uri }}"\n')
+		outfile.write('            - name: ManagementNIC2.constraint\n')
+		outfile.write('              value: userspecified\n')
+		outfile.write('            - name: ManagementNIC2.vlanid\n')
+		outfile.write('              value: "0"\n')
+		outfile.write('            - name: Password\n')
+		outfile.write('              value: ""\n')
+		outfile.write('            - name: SSH\n')
+		outfile.write('              value: enabled\n')
+		outfile.write('              constraints: \'{"options":["enabled","disabled"]}\'\n')
+		outfile.write('              type: option\n')
+		outfile.write('            complianceControl: Checked\n')
+		outfile.write('          firmware:\n')
+		outfile.write('            manageFirmware: true\n')
+		outfile.write('            firmwareBaselineUri: "{{ firmware_baseline_uri }}"\n')
+		outfile.write('            forceInstallFirmware: false\n')
+		outfile.write('            firmwareInstallType: FirmwareOnlyOfflineMode\n')
+		outfile.write('            firmwareActivationType: Immediate\n')
+		outfile.write('            complianceControl: Checked\n')
+		outfile.write('          connectionSettings:\n')
+		outfile.write('            connections:\n')
+		outfile.write('            - id: 1\n')
+		outfile.write('              name: Deployment Network A\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Mezz 3:1-a\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ deploy_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: Auto\n')
+		outfile.write('              ipv4:\n')
+		outfile.write('                ipAddressSource: SubnetPool\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: Primary\n')
+		outfile.write('                bootVlanId: \n')
+		outfile.write('                ethernetBootType: iSCSI\n')
+		outfile.write('                bootVolumeSource: UserDefined\n')
+		outfile.write('                iscsi:\n')
+		outfile.write('                  initiatorNameSource: ProfileInitiatorName\n')
+		outfile.write('                  secondBootTargetIp: ""\n')
+		outfile.write('                  chapLevel: None\n')
+		outfile.write('            - id: 2\n')
+		outfile.write('              name: Deployment Network B\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Mezz 3:2-a\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ deploy_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: Auto\n')
+		outfile.write('              ipv4:\n')
+		outfile.write('                ipAddressSource: SubnetPool\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: Secondary\n')
+		outfile.write('                bootVlanId: \n')
+		outfile.write('                ethernetBootType: iSCSI\n')
+		outfile.write('                bootVolumeSource: UserDefined\n')
+		outfile.write('                iscsi:\n')
+		outfile.write('                  initiatorNameSource: ProfileInitiatorName\n')
+		outfile.write('                  secondBootTargetIp: ""\n')
+		outfile.write('                  chapLevel: None\n')
+		outfile.write('            - id: 3\n')
+		outfile.write('              name: mgmt-1\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Mezz 3:1-d\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ management_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 4\n')
+		outfile.write('              name: mgmt-2\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Mezz 3:2-d\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ management_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 5\n')
+		outfile.write('              name: vmotion-1\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ vmotion_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 6\n')
+		outfile.write('              name: vmotion-2\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ vmotion_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 7\n')
+		outfile.write('              name: prod-1\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ prod_netset_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 8\n')
+		outfile.write('              name: prod-2\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ prod_netset_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 9\n')
+		outfile.write('              name: iSCSI-A\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ iscsi_a_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 10\n')
+		outfile.write('              name: iSCSI-B\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ iscsi_b_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 11\n')
+		outfile.write('              name: ft-1\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ ft_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            - id: 12\n')
+		outfile.write('              name: ft-2\n')
+		outfile.write('              functionType: Ethernet\n')
+		outfile.write('              portId: Auto\n')
+		outfile.write('              requestedMbps: "2500"\n')
+		outfile.write('              networkUri: "{{ ft_network_uri }}"\n')
+		outfile.write('              lagName: \n')
+		outfile.write('              isolatedTrunk: false\n')
+		outfile.write('              requestedVFs: "0"\n')
+		outfile.write('              ipv4: {}\n')
+		outfile.write('              boot:\n')
+		outfile.write('                priority: NotBootable\n')
+		outfile.write('                iscsi: {}\n')
+		outfile.write('            manageConnections: true\n')
+		outfile.write('            complianceControl: Checked\n')
+		outfile.write('          bootMode:\n')
+		outfile.write('            manageMode: true\n')
+		outfile.write('            mode: UEFIOptimized\n')
+		outfile.write('            secureBoot: Unmanaged\n')
+		outfile.write('            pxeBootPolicy: Auto\n')
+		outfile.write('            complianceControl: Checked\n')
+		outfile.write('          boot:\n')
+		outfile.write('            manageBoot: true\n')
+		outfile.write('            order:\n')
+		outfile.write('            - HardDisk\n')
+		outfile.write('            complianceControl: Checked\n')
+		outfile.write('          bios:\n')
+		outfile.write('            manageBios: true\n')
+		outfile.write('            overriddenSettings:\n')
+		outfile.write('            - id: IntelUpiPowerManagement\n')
+		outfile.write('              value: Disabled\n')
+		outfile.write('            - id: UncoreFreqScaling\n')
+		outfile.write('              value: Maximum\n')
+		outfile.write('            - id: EnergyEfficientTurbo\n')
+		outfile.write('              value: Disabled\n')
+		outfile.write('            - id: MinProcIdlePkgState\n')
+		outfile.write('              value: NoState\n')
+		outfile.write('            - id: PowerRegulator\n')
+		outfile.write('              value: StaticHighPerf\n')
+		outfile.write('            - id: MinProcIdlePower\n')
+		outfile.write('              value: NoCStates\n')
+		outfile.write('            - id: SubNumaClustering\n')
+		outfile.write('              value: Enabled\n')
+		outfile.write('            - id: EnergyPerfBias\n')
+		outfile.write('              value: MaxPerf\n')
+		outfile.write('            - id: CollabPowerControl\n')
+		outfile.write('              value: Disabled\n')
+		outfile.write('            - id: WorkloadProfile\n')
+		outfile.write('              value: Virtualization-MaxPerformance\n')
+		outfile.write('            - id: NumaGroupSizeOpt\n')
+		outfile.write('              value: Clustered\n')
+		outfile.write('            complianceControl: Checked\n')
+		outfile.write('          managementProcessor:\n')
+		outfile.write('            manageMp: false\n')
+		outfile.write('            mpSettings: []\n')
+		outfile.write('            complianceControl: Unchecked\n')
+		outfile.write('          localStorage:\n')
+		outfile.write('            sasLogicalJBODs: []\n')
+		outfile.write('            controllers:\n')
+		outfile.write('            - logicalDrives:\n')
+		outfile.write('              - name: local-raid1\n')
+		outfile.write('                raidLevel: RAID1\n')
+		outfile.write('                bootable: false\n')
+		outfile.write('                numPhysicalDrives: 2\n')
+		outfile.write('                driveTechnology: \n')
+		outfile.write('                sasLogicalJBODId: \n')
+		outfile.write('                accelerator: Unmanaged\n')
+		outfile.write('              deviceSlot: Embedded\n')
+		outfile.write('              mode: Mixed\n')
+		outfile.write('              initialize: false\n')
+		outfile.write('              driveWriteCache: Unmanaged\n')
+		outfile.write('            complianceControl: Unchecked\n')
+		outfile.write('          sanStorage:\n')
+		outfile.write('            manageSanStorage: true\n')
+		outfile.write('            hostOSType: VMware (ESXi)\n')
+		outfile.write('            volumeAttachments: []\n')
+		outfile.write('            sanSystemCredentials: []\n')
+		outfile.write('            complianceControl: CheckedMinimum\n')
+		outfile.write('\n')
+		outfile.write('    - debug: var=server_profile_template\n')
+		outfile.write('\n')
+		#END
+		
+
+#18
 def writeAddHypervisorClusterProfile(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
+		
+		#BEGIN get Facts
+		outfile.write('  - name: get Hypervisor manager uri\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+hostname+'/rest/hypervisor-managers\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_hypervisor_managers\n')
+		outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
+		outfile.write('\n')
+		outfile.write('  - name: Gather Server Profile Template Nublar_ESXi uri\n')
+		outfile.write('    oneview_server_profile_template_facts:\n')
+		outfile.write('      config: "{{ config }}"\n')
+		outfile.write('      name: "Nublar_ESXi"\n')
+		outfile.write('    delegate_to: localhost\n')
+		outfile.write('  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
+		outfile.write('\n')
+		outfile.write('  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: var_standardswitches_uris={{[]}}\n')
+		outfile.write('  - set_fact: var_standardswitches_uris="{{var_standardswitches_uris + [item[\'networkUri\']]}}"\n')
+		outfile.write('    when: item[\'networkUri\'] not in var_standardswitches_uris and item[\'networkUri\'] is search("/ethernet-networks/")\n')
+		outfile.write('    with_items: \'{{ server_profile_templates[0]["connectionSettings"]["connections"] }}\'\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - debug: var=var_standardswitches_uris\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: var_distributedswitches_uris={{[]}}\n')
+		outfile.write('  - set_fact: var_distributedswitches_uris="{{var_distributedswitches_uris + [item[\'networkUri\']]}}"\n')
+		outfile.write('    when: item[\'networkUri\'] not in var_distributedswitches_uris and item[\'networkUri\'] is search("/network-sets/")\n')
+		outfile.write('    with_items: \'{{ server_profile_templates[0]["connectionSettings"]["connections"] }}\'\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - debug: var=var_distributedswitches_uris\n')
+		outfile.write('\n')
+		
+		#TODO 2x URI to names
+		
+		for cluster in variablesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+				
+			#BEGIN SET
+			outfile.write('  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: https://'+hostname+'/rest/hypervisor-cluster-profiles\n')
+			outfile.write('      method: POST\n')
+			outfile.write('      body_format: json\n')
+			outfile.write('      body:\n')
+			outfile.write('        type: HypervisorClusterProfileV3\n')
+			outfile.write('        name: "'+cluster+'"\n')
+			outfile.write('        description: ""\n')
+			outfile.write('        hypervisorType: Vmware\n')
+			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
+			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
+			outfile.write('        mgmtIpSettingsOverride:\n')
+			outfile.write('          netmask: "{{ mgt_network_netmask }}"\n')
+			outfile.write('          gateway: "{{ mgt_network_gateway }}"\n')
+			outfile.write('          dnsDomain: "{{ mgt_network_domain }}"\n')
+			outfile.write('          primaryDns: "{{ mgt_network_dns1 }}"\n')
+			outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')
+			outfile.write('        hypervisorClusterSettings:\n')
+			outfile.write('          type: "Vmware"\n')
+			outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
+			outfile.write('          haEnabled: '+("true" if (variablesHypervisorAll["high_availability"]=="Enabled") else "false")+'\n')
+			outfile.write('          distributedSwitchVersion: "'+variablesHypervisorAll["distributed_vswitch_version"]+'"\n')
+			outfile.write('          distributedSwitchUsage: "'+variablesHypervisorAll["use_distributed_vswitch_for"]+'"\n')
+			outfile.write('          multiNicVMotion: '+("true" if (variablesHypervisorAll["multi_nic_vmotion"]=="Enabled") else "false")+'\n')
+			outfile.write('          virtualSwitchType: "'+variablesHypervisorAll["vswitch_type"]+'"\n')
+			outfile.write('        hypervisorHostProfileTemplate:\n')
+			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
+			outfile.write('          deploymentPlan:\n')
+			outfile.write('            serverPassword: "{{ serverPassword }}"\n')
+			outfile.write('            deploymentCustomArgs: []\n')
+			outfile.write('          hostprefix: "'+cluster+'"\n')
+			outfile.write('          hostConfigPolicy:\n')
+			outfile.write('            leaveHostInMaintenance: false\n')
+			outfile.write('            useHostnameToRegister: true\n')
+			outfile.write('          virtualSwitchConfigPolicy:\n')
+			outfile.write('            manageVirtualSwitches: true\n')
+			outfile.write('            configurePortGroups: true\n')
+			outfile.write('          virtualSwitches:\n')
+			
+			
+			
+			
+			
+
+			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches (stehen in var_mylist)
+			outfile.write('          - name: "{{ vswitch_name }}"\n') #von uri name holen
+			outfile.write('            virtualSwitchType: Standard\n')
+			outfile.write('            version: \n')
+			outfile.write('            virtualSwitchPortGroups:\n')
+			outfile.write('            - name: "{{ portgroup_name }}"\n')
+			outfile.write('              networkUris:\n')
+			outfile.write('              - "{{ network_uri }}"\n')
+			outfile.write('              vlan: "0"\n')
+			outfile.write('              virtualSwitchPorts:\n')
+			outfile.write('              - virtualPortPurpose:\n')
+			outfile.write('                - "{{ network_purpose }}"\n')
+			outfile.write('                ipAddress: \n')
+			outfile.write('                subnetMask: \n')
+			outfile.write('                dhcp: true\n')
+			outfile.write('                action: NONE\n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            virtualSwitchUplinks:\n')
+			outfile.write('            - name: Mezz 3:1-d\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            - name: Mezz 3:2-d\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            action: NONE\n')
+			outfile.write('            networkUris:\n')
+			outfile.write('            - "{{ network_uri }}"\n')
+			outfile.write('\n')          #CODE Loop_end      
+			
+			
+			
+			
+			
+			
+			#"connectionSettings" mit networkUri)=network set
+			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
+			outfile.write('          - name: "{{ vswitch_name }}"\n') #Synergy-VMware Z66ff
+			outfile.write('            virtualSwitchType: Distributed\n')
+			outfile.write('            version: 6.6.0\n')
+			outfile.write('            virtualSwitchPortGroups:\n')
+			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet ||| abfragen: "/rest/network-sets/a6aa4b3e-1671-4f8f-b91b-62438c8c3762
+			outfile.write('            - name: "{{ network_name }}"\n') 
+			outfile.write('              networkUris:\n')
+			outfile.write('              - "{{ network_uri }}"\n')
+			outfile.write('              vlan: "{{ network_vlan }}"\n')
+			outfile.write('              virtualSwitchPorts: []\n')
+			outfile.write('              action: NONE\n')
+			outfile.write('\n')        	#CODE Loop_end
+			outfile.write('            virtualSwitchUplinks:\n')
+			outfile.write('            - name: Mezz 3:1-f\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            - name: Mezz 3:2-f\n') #CODE aus Server Profile Template
+			outfile.write('              active: false\n')
+			outfile.write('              mac: \n')
+			outfile.write('              vmnic: \n')
+			outfile.write('              action: NONE\n')
+			outfile.write('            action: NONE\n')
+			outfile.write('            networkUris:\n')
+			outfile.write('            - "{{ networkset_uri }}"\n')
+			outfile.write('\n')        #CODE Loop_end
+			
+			
+			
+			
+			outfile.write('      status_code: 202\n')
+			outfile.write('    register: var_return\n')
+			outfile.write('\n')
+			outfile.write('  - debug:\n')
+			outfile.write('      var: var_return\n')
+			outfile.write('\n')
+		#END
+		outfile.close()
+
+
+#19
+def writeRenameEnclosures(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 
 		#BEGIN
-		outfile.write('        type: HypervisorClusterProfileV3\n')
-		outfile.write('        description: "{{ hvcp_desc }}"\n')
-		outfile.write('        hypervisorType: Vmware\n')
-		outfile.write('        hypervisorClusterSettings:\n')
-		outfile.write('          type: Vmware\n')
-		outfile.write('          distributedSwitchVersion: 6.6.0\n')
-		outfile.write('          distributedSwitchUsage: "0"\n')
-		outfile.write('          drsEnabled: true\n')
-		outfile.write('          haEnabled: true\n')
-		outfile.write('          multiNicVMotion: true\n')
-		outfile.write('          virtualSwitchType: Distributed\n')
-		outfile.write('        hypervisorHostProfileTemplate:\n')
-		outfile.write('          serverProfileTemplateUri: "{{ spt_uri }}"\n')
-		outfile.write('          deploymentPlan:\n')
-		outfile.write('            serverPassword: "{{ serverPassword }}"\n')
-		outfile.write('            deploymentCustomArgs: []\n')
-		outfile.write('          hostprefix: "{{ hvcp_name }}"\n')
-		outfile.write('          virtualSwitches:\n')
-		outfile.write('\n')        #CODE Loop_start über alle Standard-Switches
-		outfile.write('          - name: "{{ vswitch_name }}"\n')
-		outfile.write('            virtualSwitchType: Standard\n')
-		outfile.write('            version: \n')
-		outfile.write('            virtualSwitchPortGroups:\n')
-		outfile.write('            - name: "{{ portgroup_name }}"\n')
-		outfile.write('              networkUris:\n')
-		outfile.write('              - "{{ network_uri }}"\n')
-		outfile.write('              vlan: "0"\n')
-		outfile.write('              virtualSwitchPorts:\n')
-		outfile.write('              - virtualPortPurpose:\n')
-		outfile.write('                - {{ network_purpose }}\n')
-		outfile.write('                ipAddress: \n')
-		outfile.write('                subnetMask: \n')
-		outfile.write('                dhcp: true\n')
-		outfile.write('                action: NONE\n')
-		outfile.write('              action: NONE\n')
-		outfile.write('            virtualSwitchUplinks:\n')
-		outfile.write('            - name: Mezz 3:1-d\n') #CODE aus Server Profile Template
-		outfile.write('              active: false\n')
-		outfile.write('              mac: \n')
-		outfile.write('              vmnic: \n')
-		outfile.write('              action: NONE\n')
-		outfile.write('            - name: Mezz 3:2-d\n') #CODE aus Server Profile Template
-		outfile.write('              active: false\n')
-		outfile.write('              mac: \n')
-		outfile.write('              vmnic: \n')
-		outfile.write('              action: NONE\n')
-		outfile.write('            action: NONE\n')
-		outfile.write('            networkUris:\n')
-		outfile.write('            - "{{ network_uri }}"\n')
-		outfile.write('\n')          #CODE Loop_end      
-		outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
-		outfile.write('          - name: "{{ vswitch_name }}"\n')
-		outfile.write('            virtualSwitchType: Distributed\n')
-		outfile.write('            version: 6.6.0\n')
-		outfile.write('            virtualSwitchPortGroups:\n')
-		outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet
-		outfile.write('            - name: "{{ network_name }}"\n')
-		outfile.write('              networkUris:\n')
-		outfile.write('              - "{{ network_uri }}\n')
-		outfile.write('              vlan: "{{ network_vlan }}"\n')
-		outfile.write('              virtualSwitchPorts: []\n')
-		outfile.write('              action: NONE\n')
-		outfile.write('\n')        	#CODE Loop_end
-		outfile.write('            virtualSwitchUplinks:\n')
-		outfile.write('            - name: Mezz 3:1-f\n') #CODE aus Server Profile Template
-		outfile.write('              active: false\n')
-		outfile.write('              mac: \n')
-		outfile.write('              vmnic: \n')
-		outfile.write('              action: NONE\n')
-		outfile.write('            - name: Mezz 3:2-f\n') #CODE aus Server Profile Template
-		outfile.write('              active: false\n')
-		outfile.write('              mac: \n')
-		outfile.write('              vmnic: \n')
-		outfile.write('              action: NONE\n')
-		outfile.write('            action: NONE\n')
-		outfile.write('            networkUris:\n')
-		outfile.write('            - "{{ networkset_uri }}"\n')
-		outfile.write('\n')        #CODE Loop_end
-		outfile.write('          hostConfigPolicy:\n')
-		outfile.write('            leaveHostInMaintenance: false\n')
-		outfile.write('            useHostnameToRegister: true\n')
-		outfile.write('          virtualSwitchConfigPolicy:\n')
-		outfile.write('            manageVirtualSwitches: true\n')
-		outfile.write('            configurePortGroups: true\n')
-		outfile.write('        name: "{{ hvcp_name }}"\n')
-		outfile.write('        mgmtIpSettingsOverride:\n')
-		outfile.write('          netmask: "{{ mgt_network_netmask }}"\n')
-		outfile.write('          gateway: "{{ mgt_network_gateway }}"\n')
-		outfile.write('          dnsDomain: "{{ mgt_network_domain }}"\n')
-		outfile.write('          primaryDns: "{{ mgt_network_dns1 }}"\n')
-		outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')
-		outfile.write('        hypervisorManagerUri: "{{ hvm_uri }}"\n')
-		outfile.write('        path: "FFM- {{ zone }}"\n') #CODE
+		outfile.write('    - name: Gather facts about all Enclosures\n')
+		outfile.write('      oneview_enclosure_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_m1="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is none\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_m2="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      when: item.applianceBays.0.model is match "Synergy Composer" and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
+		outfile.write('\n')
+		outfile.write('    - set_fact: enc_sl="{{ item }}"\n')
+		outfile.write('      loop: "{{ enclosures }}"\n')
+		outfile.write('      no_log: True\n')
+		outfile.write('      when: item.applianceBays.0.model is none and item.applianceBays.1.model is match "Synergy Image Streamer"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Master-1\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_m1.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Master1"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Master-2\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_m2.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Master2"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Rename Enclosure Slave\n')
+		outfile.write('      oneview_enclosure:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        validate_etag: False\n')
+		outfile.write('        data:\n')
+		outfile.write('          name: "{{ enc_sl.name }}"\n')
+		outfile.write('          newName: "'+frame["letter"]+'-Slave"\n')
 		outfile.write('\n')
 		#END
 		outfile.close()
+		
+		
+		
+#20
+def writeCreateVolumeTemplate(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
 
+		#BEGIN
+		outfile.write('  - name: Find Storage System URI\n')
+		outfile.write('    oneview_storage_system_facts:\n')
+		outfile.write('      config: "{{ config }}"\n')
+		outfile.write('      storage_hostname: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["group_management_ip_or_host_name"]+'"\n')
+		outfile.write('  - set_fact: storage_system_uri="{{ storage_systems.uri }}"\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: nimble_performance_policy="{{ item.id }}"\n')
+		outfile.write('    when: item.name == "VMware ESX 5"\n')
+		outfile.write('    with_items: "{{storage_systems.deviceSpecificAttributes.performancePolicies }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - name: Find Storage Pool URI\n')
+		outfile.write('    oneview_storage_pool_facts:\n')
+		outfile.write('      config: "{{ config }}"\n')
+		outfile.write('  - set_fact: storage_pool_uri="{{ storage_pools.0.uri }}"\n')
+		outfile.write('\n')
+		outfile.write('  - name: Retrieve Nimble root Volume Template URI\n')
+		outfile.write('    uri:\n')
+		outfile.write('      headers:\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('      url: "https://'+hostname+'/{{ storage_system_uri }}/templates?query=isRoot%20EQ%20true"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('    register: root_template\n')
+		outfile.write('  - set_fact: root_template_uri="{{ root_template.json.members[0].uri }}"\n')
+		outfile.write('\n')
+		outfile.write('  - name: Create a Storage Volume Template\n')
+		outfile.write('    oneview_storage_volume_template:\n')
+		outfile.write('      config: "{{ config }}"\n')
+		outfile.write('      state: present\n')
+		outfile.write('      data:\n')
+		outfile.write('        rootTemplateUri: "{{ root_template_uri }}"\n')
+		outfile.write('        properties:\n')
+		outfile.write('          name:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: false\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Volume name\n')
+		outfile.write('            required: true\n')
+		outfile.write('            maxLength: 100\n')
+		outfile.write('            minLength: 1\n')
+		outfile.write('            description: A volume name between 1 and 100 characters\n')
+		outfile.write('          size:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: false\n')
+		outfile.write('              semanticType: capacity\n')
+		outfile.write('            type: integer\n')
+		outfile.write('            title: Capacity\n')
+		outfile.write('            default: 8796093022208\n')
+		outfile.write('            maximum: 139637976727552\n')
+		outfile.write('            minimum: 1048576\n')
+		outfile.write('            required: true\n')
+		outfile.write('            description: Capacity of the volume in bytes\n')
+		outfile.write('          folder:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('              semanticType: device-folder\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Folder\n')
+		outfile.write('            default: \n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: Nimble identifier of the folder which will contain the volume\n')
+		outfile.write('          isPinned:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('            type: boolean\n')
+		outfile.write('            title: Is Volume Cache Pinning enabled\n')
+		outfile.write('            default: false\n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: Enables or disables volume cache pinning for the volume\n')
+		outfile.write('          iopsLimit:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('            type: integer\n')
+		outfile.write('            title: Maximum Input/Output Operations per Second\n')
+		outfile.write('            default: \n')
+		outfile.write('            maximum: 4294967294\n')
+		outfile.write('            minimum: 256\n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: Specifies the maximum input/output operations per second for the\n')
+		outfile.write('              volume\n')
+		outfile.write('          volumeSet:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('              semanticType: device-volume-collection\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Volume Set\n')
+		outfile.write('            format: x-uri-reference\n')
+		outfile.write('            default: \n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: URI of the volume set to associate with the volume\n')
+		outfile.write('          description:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: false\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Description\n')
+		outfile.write('            default: ""\n')
+		outfile.write('            required: false\n')
+		outfile.write('            maxLength: 2000\n')
+		outfile.write('            minLength: 0\n')
+		outfile.write('            description: A description for the volume\n')
+		outfile.write('          isEncrypted:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('              createOnly: true\n')
+		outfile.write('            type: boolean\n')
+		outfile.write('            title: Is Encryption enabled\n')
+		outfile.write('            default: false\n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: Enables or disables encryption of the volume\n')
+		outfile.write('          isShareable:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: false\n')
+		outfile.write('            type: boolean\n')
+		outfile.write('            title: Is Shareable\n')
+		outfile.write('            default: true\n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: The shareability of the volume\n')
+		outfile.write('          storagePool:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: false\n')
+		outfile.write('              createOnly: true\n')
+		outfile.write('              semanticType: device-storage-pool\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Storage Pool\n')
+		outfile.write('            format: x-uri-reference\n')
+		outfile.write('            required: true\n')
+		outfile.write('            description: URI of the Storage Pool the volume should be added to\n')
+		outfile.write('            default: "{{ storage_pool_uri }}"\n')
+		outfile.write('          isDeduplicated:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('            type: boolean\n')
+		outfile.write('            title: Is Deduplication enabled\n')
+		outfile.write('            default: true\n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: Enables or disables deduplication of the volume\n')
+		outfile.write('          templateVersion:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Template version\n')
+		outfile.write('            default: "1.0"\n')
+		outfile.write('            required: true\n')
+		outfile.write('            description: Version of the template\n')
+		outfile.write('          provisioningType:\n')
+		outfile.write('            enum:\n')
+		outfile.write('            - Thin\n')
+		outfile.write('            - Full\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('              createOnly: true\n')
+		outfile.write('              semanticType: device-provisioningType\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Provisioning Type\n')
+		outfile.write('            default: Thin\n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: The provisioning type for the volume\n')
+		outfile.write('          dataTransferLimit:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('            type: integer\n')
+		outfile.write('            title: Data Transfer Limit Maximum in mebibytes\n')
+		outfile.write('            default: \n')
+		outfile.write('            maximum: 4294967294\n')
+		outfile.write('            minimum: 1\n')
+		outfile.write('            required: false\n')
+		outfile.write('            description: Specifies the maximum data transfer limit for the volume\n')
+		outfile.write('          performancePolicy:\n')
+		outfile.write('            meta:\n')
+		outfile.write('              locked: true\n')
+		outfile.write('              semanticType: device-performancePolicy\n')
+		outfile.write('            type: string\n')
+		outfile.write('            title: Performance Policy\n')
+		outfile.write('            required: true\n')
+		outfile.write('            description: Nimble identifier of the performance policy to associate with the volume\n')
+		outfile.write('            default: "{{ nimble_performance_policy }}"\n')
+		outfile.write('        name: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["template_name"]+'"\n')
+		outfile.write('        description: ""\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
+		
+#21
+def writeCreateVolumes(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+				
+		#BEGIN
+		outfile.write('    - name: Find Storage Volume Template by name\n')
+		outfile.write('      oneview_storage_volume_template_facts:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        name: "'+variablesSynergyNimbleAll[frame["letter"]]["variables"]["template_name"]+'"\n')
+		outfile.write('    - set_fact: storage_volume_template_uri="{{ storage_volume_templates.0.uri }}"\n')
+		outfile.write('    - set_fact: storage_pool_uri="{{ storage_volume_templates.0.storagePoolUri }}"\n')
+		outfile.write('    - set_fact: performance_policy="{{ storage_volume_templates.0.properties.performancePolicy.default }}"\n')
+		outfile.write('\n')
+		
+		storageVolumenames = variablesSynergyNimbleAll[frame["letter"]]["variables"]["storage_volume_names"].split(",")
+		for storagevolumename in storageVolumenames:
+			outfile.write('    - name: Create Volume '+storagevolumename+' based on a Storage Volume Template\n')
+			outfile.write('      oneview_volume:\n')
+			outfile.write('        config: "{{ config }}"\n')
+			outfile.write('        state: present\n')
+			outfile.write('        data:\n')
+			outfile.write('          properties:\n')
+			outfile.write('            name: "'+storagevolumename+'"\n')
+			outfile.write('            description: ""\n')
+			outfile.write('            storagePool: "{{ storage_pool_uri }}"\n')
+			outfile.write('            size: 8796093022208\n')
+			outfile.write('            provisioningType: Thin\n')
+			outfile.write('            isShareable: true\n')
+			outfile.write('            templateVersion: "1.0"\n')
+			outfile.write('            isDeduplicated: true\n')
+			outfile.write('            performancePolicy: "{{ performance_policy }}"\n')
+			outfile.write('            folder:\n')
+			outfile.write('            volumeSet:\n')
+			outfile.write('            isEncrypted: false\n')
+			outfile.write('            isPinned: false\n')
+			outfile.write('            iopsLimit:\n')
+			outfile.write('            dataTransferLimit:\n')
+			outfile.write('          templateUri: "{{ storage_volume_template_uri }}"\n')
+			outfile.write('          isPermanent: true\n')
+			outfile.write('          initialScopeUris: \n')
+			outfile.write('\n')
+		#END
+		outfile.close()
+		
+		
+############################################################################
+############## Main Function ###############################################
+############################################################################
 		
 def main():
-	findFrames()	
-	findNimbles()	
-	findHypervisor()	
+	findFrames()
+	findNimbles()
+	findSynergyNimbles()
+	findHypervisor()
 	writeConfigs()
-	writeTimelocale("01","ntp") #todo: test
+	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
-	writeAddHypervisorManager("03","addhypervisormanager") #todo: test
+	writeAddHypervisorManager("03","addhypervisormanager")
 	writeCreatenetwork("04","ethernetnetworkwithassociatedsubnet")
 	writeOSdeploymentServer("05","osds")
 	writeNetworkset("06","networkset")
-	writeLogicalInterconnectGroup("07","logicalinterconnectgroup") #https://github.com/HewlettPackard/oneview-ansible/blob/master/examples/synergy_environment_setup.yml
+	writeLogicalInterconnectGroup("07","logicalinterconnectgroup")
 	writeEnclosureGroup("08","enclosuregroup")
 	writeLogicalEnclosure("09","logicalenclosure")
-	writeStoragesystem("10","storagesystem") #todo umsetzung via RESR-API
+	writeStoragesystem("10","storagesystem")
 	writeAddFirmwareBundle("11","addfirmwarebundle")
 	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
 	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
 	writeUploadGI("14","uploadGI")
 	writeCreatedeploymentplan("15","createdeploymentplan")
-	writeRenameServerHardwareTypes("16","renameserverhardwaretypes") #todo: test
-	#17 Create SP Template
-	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo umsetzung via RESR-API
-	writeRenameEnclosures("19","renameenclosures") #todo: test
-	#20 Create Volume Template
-	#21 Create Volumes
-
+	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
+	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
+	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo implement
+	writeRenameEnclosures("19","renameenclosures")
+	writeCreateVolumeTemplate("20","createvolumetemplate")
+	writeCreateVolumes("21","createvolumes")
+	#22	Add Hypervisors
 	
 #start
 main()
