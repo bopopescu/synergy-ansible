@@ -43,7 +43,7 @@ variablesAll = []
 variablesNimbleAll = {}
 variablesSynergyNimbleAll = {}
 variablesHypervisorAll = {}
-varaiblesClustersAll = []
+variablesClustersAll = []
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -266,7 +266,7 @@ def findSynergyNimbles():
 
 
 def findHypervisor():
-	global variablesHypervisorAll,varaiblesClustersAll
+	global variablesHypervisorAll,variablesClustersAll
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
 	worksheet = workbook.sheet_by_name(exceltabhypervisor)
@@ -323,8 +323,8 @@ def findHypervisor():
 			continue
 		
 		#found valid line
-		if(not name in varaiblesClustersAll):
-			varaiblesClustersAll.append(name)	
+		if(not name in variablesClustersAll):
+			variablesClustersAll.append(name)	
 
 
 
@@ -1960,7 +1960,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		
 		#TODO 2x URI to names
 		
-		for cluster in varaiblesClustersAll:
+		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
 				continue
 				
