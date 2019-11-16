@@ -1,0 +1,318 @@
+###
+# created by python script convert.py
+# Felix Sterzelmaier, Concat AG
+# Created: 2019-11-16 18:57:21 CET(+0100)
+# Dependencies: pip install --upgrade pip
+# Dependencies: pip install pyvmomi
+# Run with: ansible-playbook -c local -i localhost, A_18_addhypervisorclusterprofile.yml
+# Run on: 10.10.5.239/olant-ansible as user olant in path /home/olant/synergy-ansible/feste-script/output
+# Before reading this playbook please read the README.txt and the sourcecode of convert.py first!
+###
+---
+- hosts: localhost
+  vars:
+    config: "{{ playbook_dir }}/A_oneview_config.json"
+  tasks:
+  - name: Login to API and retrieve AUTH-Token
+    uri:
+      validate_certs: yes
+      headers:
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/login-sessions
+      method: POST
+      body_format: json
+      body:
+        authLoginDomain: "LOCAL"
+        password: "Concat123"
+        userName: "Administrator"
+        loginMsgAck: "true"
+    register: var_this
+
+  - set_fact: var_token='{{ var_this["json"]["sessionID"] }}'
+
+  - name: get Hypervisor manager uri
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-managers
+      method: GET
+      body_format: json
+      body:
+      status_code: 200
+    register: var_hypervisor_managers
+  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"
+
+  - name: Gather Server Profile Template Nublar_ESXi uri
+    oneview_server_profile_template_facts:
+      config: "{{ config }}"
+      name: "Nublar_ESXi"
+    delegate_to: localhost
+  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"
+
+  - set_fact: var_standardswitches_uris={{[]}}
+  - set_fact: var_standardswitches_uris="{{var_standardswitches_uris + [item['networkUri']]}}"
+    when: item['networkUri'] not in var_standardswitches_uris and item['networkUri'] is search("/ethernet-networks/")
+    with_items: '{{ server_profile_templates[0]["connectionSettings"]["connections"] }}'
+    no_log: True
+
+  - set_fact: var_distributedswitches_uris={{[]}}
+  - set_fact: var_distributedswitches_uris="{{var_distributedswitches_uris + [item['networkUri']]}}"
+    when: item['networkUri'] not in var_distributedswitches_uris and item['networkUri'] is search("/network-sets/")
+    with_items: '{{ server_profile_templates[0]["connectionSettings"]["connections"] }}'
+    no_log: True
+
+  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-cluster-profiles
+      method: POST
+      body_format: json
+      body:
+#BEGIN HVCP
+        type: HypervisorClusterProfileV3
+        description: ''
+        hypervisorType: Vmware
+        hypervisorClusterSettings:        # Diesen Block aus dem Hypervisor-Manager ziehen
+          type: Vmware                    #
+          distributedSwitchVersion: 6.6.0 #
+          distributedSwitchUsage: '0'     #
+          drsEnabled: true                #
+          haEnabled: true                 #
+          multiNicVMotion: true           # 
+          virtualSwitchType: Distributed  # Bis hier
+        hypervisorHostProfileTemplate:
+          serverProfileTemplateUri: "/rest/server-profile-templates/7e5a9d5e-ce02-4337-b562-2c7bc67a8773" #CODE 
+          deploymentPlan:
+            serverPassword: Concat123! #CODE
+            deploymentCustomArgs: []
+          hostprefix: TST #CODE
+          virtualSwitches:
+#BEGIN virtual-switch Definitionen
+# Ein standard switch startet hier
+            - name: ib-mgmt                                                     # <-- ist im Netzwerk definiert, das unten definiert ist
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: ib-mgmt                                                     # <-- ist im Netzwerk definiert, das unten definiert ist
+              networkUris:
+              - "/rest/ethernet-networks/319374f5-862f-4d91-9c0b-c874388944d8"  # <-- ist im server-profile-template definiert (Connections)
+              vlan: '0'
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - Management                                                    # <-- ist im Netzwerk definiert, das unten definiert ist
+                ipAddress: 
+                subnetMask: 
+                dhcp: true
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-d                                                  # <-- ist im server-profile-template definiert (Connections)
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-d                                                  # <-- ist im server-profile-template definiert (Connections)
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "/rest/ethernet-networks/319374f5-862f-4d91-9c0b-c874388944d8"    # <-- ist im server-profile-template definiert (Connections)
+# Standard Switch endet hier
+# ab hier weitere standard switches. Immer, wenn ein einzelnes Netzwer auf einer Verbindung im server-profile-template definiert ist, wird ein standard switch erstellt. (uri = /rest/ethernet-networks/...)
+          - name: iSCSI-A
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: iSCSI-A
+              networkUris:
+              - "/rest/ethernet-networks/ce70ffd5-2a31-495b-80d2-18e17899912e"
+              vlan: '0'
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - ISCSI
+                ipAddress: 
+                subnetMask: 
+                dhcp: false
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-g
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "/rest/ethernet-networks/ce70ffd5-2a31-495b-80d2-18e17899912e"
+          - name: iSCSI-B
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: iSCSI-B
+              networkUris:
+              - "/rest/ethernet-networks/c0068604-9f8e-4bf4-b8d5-4588ebd9a064"
+              vlan: '0'
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - ISCSI
+                ipAddress: 
+                subnetMask: 
+                dhcp: false
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:2-g
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "/rest/ethernet-networks/c0068604-9f8e-4bf4-b8d5-4588ebd9a064"
+          - name: A-Prod
+            virtualSwitchType: Distributed
+            version: 6.6.0
+            virtualSwitchPortGroups:
+            - name: prt-1100-16
+              networkUris:
+              - "/rest/ethernet-networks/1955a38e-a5e4-4432-84d7-2cca6cc09db2"
+              vlan: '1100'
+              virtualSwitchPorts: []
+              action: NONE
+            - name: ei-1300-48
+              networkUris:
+              - "/rest/ethernet-networks/5a649f5f-45bf-4b10-bdd7-bf853e9534af"
+              vlan: '1300'
+              virtualSwitchPorts: []
+              action: NONE
+            - name: prod-1000-0
+              networkUris:
+              - "/rest/ethernet-networks/0e278cc0-b5b8-473d-b51c-a65dd296513f"
+              vlan: '1000'
+              virtualSwitchPorts: []
+              action: NONE
+            - name: tst-1200-32
+              networkUris:
+              - "/rest/ethernet-networks/dc7051f1-e62f-42a3-b860-d9f168ac7d20"
+              vlan: '1200'
+              virtualSwitchPorts: []
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:2-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:1-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "/rest/network-sets/48639d6a-0726-40a5-91e7-faf678316774"
+          - name: vSphereFT
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: vSphereFT
+              networkUris:
+              - "/rest/ethernet-networks/7da12783-45b2-4ada-a1eb-c5ec8ffaa3ee"
+              vlan: '0'
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - FaultTolerance
+                ipAddress: 
+                subnetMask: 
+                dhcp: false
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:2-h
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:1-h
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "/rest/ethernet-networks/7da12783-45b2-4ada-a1eb-c5ec8ffaa3ee"
+          - name: vSphereVMotion
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: vSphereVMotion
+              networkUris:
+              - "/rest/ethernet-networks/992b754a-c167-4364-84b9-bc63b9d28740"
+              vlan: '0'
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - VMMigration
+                ipAddress: 
+                subnetMask: 
+                dhcp: false
+                action: NONE
+              action: NONE
+            - name: vSphereVMotion-1
+              networkUris:
+              - "/rest/ethernet-networks/992b754a-c167-4364-84b9-bc63b9d28740"
+              vlan: '0'
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - VMMigration
+                ipAddress: 
+                subnetMask: 
+                dhcp: true
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-e
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-e
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "/rest/ethernet-networks/992b754a-c167-4364-84b9-bc63b9d28740"
+          hostConfigPolicy:
+            leaveHostInMaintenance: false
+            useHostnameToRegister: true
+          virtualSwitchConfigPolicy:
+            manageVirtualSwitches: true
+            configurePortGroups: true
+        name: TST
+        mgmtIpSettingsOverride:
+          netmask: 255.255.254.0
+          gateway: 10.40.195.254
+          dnsDomain: ad.nublar.de
+          primaryDns: 10.40.72.10
+          secondaryDns: 10.40.72.11
+        hypervisorManagerUri: "/rest/hypervisor-managers/ed52a877-cf54-4e49-9d19-b8f9c0db618f"
+        path: FFM-A
+        initialScopeUris: []
+#END HVCP
+      status_code: 202
+    register: var_return
+
+  - debug:
+      var: var_return
+

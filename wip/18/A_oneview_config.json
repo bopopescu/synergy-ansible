@@ -1,0 +1,9 @@
+{
+    "ip": "a-dcb-syn0001.ad.nublar.de",
+    "credentials": {
+        "userName": "Administrator",
+        "password": "Concat123"
+    },
+    "image_streamer_ip": "",
+    "api_version": "1000"
+}

@@ -1,0 +1,512 @@
+###
+# created by python script convert.py
+# Felix Sterzelmaier, Concat AG
+# Created: 2019-11-16 18:57:21 CET(+0100)
+# Dependencies: pip install --upgrade pip
+# Dependencies: pip install pyvmomi
+# Run with: ansible-playbook -c local -i localhost, A_18_addhypervisorclusterprofile.yml
+# Run on: 10.10.5.239/olant-ansible as user olant in path /home/olant/synergy-ansible/feste-script/output
+# Before reading this playbook please read the README.txt and the sourcecode of convert.py first!
+###
+---
+- hosts: localhost
+  vars:
+    config: "{{ playbook_dir }}/A_oneview_config.json"
+  tasks:
+
+  - name: Login to API and retrieve AUTH-Token
+    uri:
+      validate_certs: yes
+      headers:
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/login-sessions
+      method: POST
+      body_format: json
+      body:
+        authLoginDomain: "LOCAL"
+        password: "Concat123"
+        userName: "Administrator"
+        loginMsgAck: "true"
+    register: var_this
+
+  - set_fact: var_token='{{ var_this["json"]["sessionID"] }}'
+
+  - name: get Hypervisor manager uri
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-managers
+      method: GET
+      body_format: json
+      body:
+      status_code: 200
+    register: var_hypervisor_managers
+  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"
+
+  - name: Gather Server Profile Template Nublar_ESXi uri
+    oneview_server_profile_template_facts:
+      config: "{{ config }}"
+      name: "Nublar_ESXi"
+    delegate_to: localhost
+  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"
+
+  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]
+
+  - set_fact: var_standardswitches_uris={{[]}}
+  - set_fact: var_standardswitches_uris="{{var_standardswitches_uris + [item['networkUri']]}}"
+    when: item['networkUri'] not in var_standardswitches_uris and item['networkUri'] is search("/ethernet-networks/")
+    with_items: '{{ server_profile_templates[0]["connectionSettings"]["connections"] }}'
+    no_log: True
+  - debug: var=var_standardswitches_uris
+
+  - set_fact: var_distributedswitches_uris={{[]}}
+  - set_fact: var_distributedswitches_uris="{{var_distributedswitches_uris + [item['networkUri']]}}"
+    when: item['networkUri'] not in var_distributedswitches_uris and item['networkUri'] is search("/network-sets/")
+    with_items: '{{ server_profile_templates[0]["connectionSettings"]["connections"] }}'
+    no_log: True
+  - debug: var=var_distributedswitches_uris
+
+  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-cluster-profiles
+      method: POST
+      body_format: json
+      body:
+        type: HypervisorClusterProfileV3
+        name: "A-PROD"
+        description: ""
+        hypervisorType: Vmware
+        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"
+        path: "FFM-A"
+        mgmtIpSettingsOverride:
+          netmask: "{{ mgt_network_netmask }}"
+          gateway: "{{ mgt_network_gateway }}"
+          dnsDomain: "{{ mgt_network_domain }}"
+          primaryDns: "{{ mgt_network_dns1 }}"
+          secondaryDns: "{{ mgt_network_dns2 }}"
+        hypervisorClusterSettings:
+          type: "Vmware"
+          drsEnabled: true
+          haEnabled: true
+          distributedSwitchVersion: "6.6.0"
+          distributedSwitchUsage: "0"
+          multiNicVMotion: true
+          virtualSwitchType: "Distributed"
+        hypervisorHostProfileTemplate:
+          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"
+          deploymentPlan:
+            serverPassword: "{{ serverPassword }}"
+            deploymentCustomArgs: []
+          hostprefix: "A-PROD"
+          hostConfigPolicy:
+            leaveHostInMaintenance: false
+            useHostnameToRegister: true
+          virtualSwitchConfigPolicy:
+            manageVirtualSwitches: true
+            configurePortGroups: true
+          virtualSwitches:
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: "{{ portgroup_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "0"
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - "{{ network_purpose }}"
+                ipAddress: 
+                subnetMask: 
+                dhcp: true
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ network_uri }}"
+
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Distributed
+            version: 6.6.0
+            virtualSwitchPortGroups:
+
+            - name: "{{ network_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "{{ network_vlan }}"
+              virtualSwitchPorts: []
+              action: NONE
+
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ networkset_uri }}"
+
+      status_code: 202
+    register: var_return
+
+  - debug:
+      var: var_return
+
+  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-cluster-profiles
+      method: POST
+      body_format: json
+      body:
+        type: HypervisorClusterProfileV3
+        name: "A-PRODTEST"
+        description: ""
+        hypervisorType: Vmware
+        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"
+        path: "FFM-A"
+        mgmtIpSettingsOverride:
+          netmask: "{{ mgt_network_netmask }}"
+          gateway: "{{ mgt_network_gateway }}"
+          dnsDomain: "{{ mgt_network_domain }}"
+          primaryDns: "{{ mgt_network_dns1 }}"
+          secondaryDns: "{{ mgt_network_dns2 }}"
+        hypervisorClusterSettings:
+          type: "Vmware"
+          drsEnabled: true
+          haEnabled: true
+          distributedSwitchVersion: "6.6.0"
+          distributedSwitchUsage: "0"
+          multiNicVMotion: true
+          virtualSwitchType: "Distributed"
+        hypervisorHostProfileTemplate:
+          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"
+          deploymentPlan:
+            serverPassword: "{{ serverPassword }}"
+            deploymentCustomArgs: []
+          hostprefix: "A-PRODTEST"
+          hostConfigPolicy:
+            leaveHostInMaintenance: false
+            useHostnameToRegister: true
+          virtualSwitchConfigPolicy:
+            manageVirtualSwitches: true
+            configurePortGroups: true
+          virtualSwitches:
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: "{{ portgroup_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "0"
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - "{{ network_purpose }}"
+                ipAddress: 
+                subnetMask: 
+                dhcp: true
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ network_uri }}"
+
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Distributed
+            version: 6.6.0
+            virtualSwitchPortGroups:
+
+            - name: "{{ network_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "{{ network_vlan }}"
+              virtualSwitchPorts: []
+              action: NONE
+
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ networkset_uri }}"
+
+      status_code: 202
+    register: var_return
+
+  - debug:
+      var: var_return
+
+  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-cluster-profiles
+      method: POST
+      body_format: json
+      body:
+        type: HypervisorClusterProfileV3
+        name: "A-TEST"
+        description: ""
+        hypervisorType: Vmware
+        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"
+        path: "FFM-A"
+        mgmtIpSettingsOverride:
+          netmask: "{{ mgt_network_netmask }}"
+          gateway: "{{ mgt_network_gateway }}"
+          dnsDomain: "{{ mgt_network_domain }}"
+          primaryDns: "{{ mgt_network_dns1 }}"
+          secondaryDns: "{{ mgt_network_dns2 }}"
+        hypervisorClusterSettings:
+          type: "Vmware"
+          drsEnabled: true
+          haEnabled: true
+          distributedSwitchVersion: "6.6.0"
+          distributedSwitchUsage: "0"
+          multiNicVMotion: true
+          virtualSwitchType: "Distributed"
+        hypervisorHostProfileTemplate:
+          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"
+          deploymentPlan:
+            serverPassword: "{{ serverPassword }}"
+            deploymentCustomArgs: []
+          hostprefix: "A-TEST"
+          hostConfigPolicy:
+            leaveHostInMaintenance: false
+            useHostnameToRegister: true
+          virtualSwitchConfigPolicy:
+            manageVirtualSwitches: true
+            configurePortGroups: true
+          virtualSwitches:
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: "{{ portgroup_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "0"
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - "{{ network_purpose }}"
+                ipAddress: 
+                subnetMask: 
+                dhcp: true
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ network_uri }}"
+
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Distributed
+            version: 6.6.0
+            virtualSwitchPortGroups:
+
+            - name: "{{ network_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "{{ network_vlan }}"
+              virtualSwitchPorts: []
+              action: NONE
+
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ networkset_uri }}"
+
+      status_code: 202
+    register: var_return
+
+  - debug:
+      var: var_return
+
+  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-cluster-profiles
+      method: POST
+      body_format: json
+      body:
+        type: HypervisorClusterProfileV3
+        name: "A-EI"
+        description: ""
+        hypervisorType: Vmware
+        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"
+        path: "FFM-A"
+        mgmtIpSettingsOverride:
+          netmask: "{{ mgt_network_netmask }}"
+          gateway: "{{ mgt_network_gateway }}"
+          dnsDomain: "{{ mgt_network_domain }}"
+          primaryDns: "{{ mgt_network_dns1 }}"
+          secondaryDns: "{{ mgt_network_dns2 }}"
+        hypervisorClusterSettings:
+          type: "Vmware"
+          drsEnabled: true
+          haEnabled: true
+          distributedSwitchVersion: "6.6.0"
+          distributedSwitchUsage: "0"
+          multiNicVMotion: true
+          virtualSwitchType: "Distributed"
+        hypervisorHostProfileTemplate:
+          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"
+          deploymentPlan:
+            serverPassword: "{{ serverPassword }}"
+            deploymentCustomArgs: []
+          hostprefix: "A-EI"
+          hostConfigPolicy:
+            leaveHostInMaintenance: false
+            useHostnameToRegister: true
+          virtualSwitchConfigPolicy:
+            manageVirtualSwitches: true
+            configurePortGroups: true
+          virtualSwitches:
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Standard
+            version: 
+            virtualSwitchPortGroups:
+            - name: "{{ portgroup_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "0"
+              virtualSwitchPorts:
+              - virtualPortPurpose:
+                - "{{ network_purpose }}"
+                ipAddress: 
+                subnetMask: 
+                dhcp: true
+                action: NONE
+              action: NONE
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-d
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ network_uri }}"
+
+
+          - name: "{{ vswitch_name }}"
+            virtualSwitchType: Distributed
+            version: 6.6.0
+            virtualSwitchPortGroups:
+
+            - name: "{{ network_name }}"
+              networkUris:
+              - "{{ network_uri }}"
+              vlan: "{{ network_vlan }}"
+              virtualSwitchPorts: []
+              action: NONE
+
+            virtualSwitchUplinks:
+            - name: Mezz 3:1-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            - name: Mezz 3:2-f
+              active: false
+              mac: 
+              vmnic: 
+              action: NONE
+            action: NONE
+            networkUris:
+            - "{{ networkset_uri }}"
+
+      status_code: 202
+    register: var_return
+
+  - debug:
+      var: var_return
+
