@@ -1,0 +1,18 @@
+sharedStorageVolumes:
+- storageVolumeUri: "/rest/storage-volumes/B1B479B6-9886-4E02-896C-AB0801577F96"
+  volumeFileSystemType: VMFS
+- storageVolumeUri: "/rest/storage-volumes/9D8CF80E-7181-4E97-82DC-AB08015781AB"
+  volumeFileSystemType: VMFS
+
+
+  # Die Volumes haben den namen "{{ Cluster-Name }}-000[12]", kommen aus oneview_volume_facts:
+  #   vars:
+  #     - config: "{{ playbook_dir }}/A_oneview_config.json"
+  #    - volume_name: "A-TST-0001"
+  #  tasks:
+  #    - name: Gather facts about all Volumes
+  #      oneview_volume_facts:
+  #        config: "{{ config }}"
+  #
+  #    - debug: var=storage_volumes.0.uri
+
