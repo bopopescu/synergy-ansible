@@ -2027,17 +2027,8 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('      body_format: json\n')
 			outfile.write('      body:\n')
 			outfile.write('        type: HypervisorClusterProfileV3\n')
-			outfile.write('        name: "'+cluster+'"\n')
 			outfile.write('        description: ""\n')
 			outfile.write('        hypervisorType: Vmware\n')
-			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
-			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
-			outfile.write('        mgmtIpSettingsOverride:\n')
-			outfile.write('          netmask: "mgt_network_netmaskTODO"\n') #CODE
-			outfile.write('          gateway: "mgt_network_gatewayTODO"\n') #CODE
-			outfile.write('          dnsDomain: "mgt_network_domainTODO"\n') #CODE
-			outfile.write('          primaryDns: "mgt_network_dns1TODO"\n') #CODE
-			outfile.write('          secondaryDns: "mgt_network_dns2TODO"\n') #CODE
 			outfile.write('        hypervisorClusterSettings:\n')
 			outfile.write('          type: "Vmware"\n')
 			outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
@@ -2059,51 +2050,23 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('            manageVirtualSwitches: true\n')
 			outfile.write('            configurePortGroups: true\n')
 			outfile.write('          virtualSwitches: "{{var_standardswitchesrequest}}"\n')
+			outfile.write('        name: "'+cluster+'"\n')
+			outfile.write('        mgmtIpSettingsOverride:\n')
+			outfile.write('          netmask: "mgt_network_netmaskTODO"\n') #CODE
+			outfile.write('          gateway: "mgt_network_gatewayTODO"\n') #CODE
+			outfile.write('          dnsDomain: "mgt_network_domainTODO"\n') #CODE
+			outfile.write('          primaryDns: "mgt_network_dns1TODO"\n') #CODE
+			outfile.write('          secondaryDns: "mgt_network_dns2TODO"\n') #CODE
+			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
+			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
+			outfile.write('        initialScopeUris: []\n')
+	
+
 			
 			
 			
 			
 			"""
-
-			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches (stehen in var_mylist)
-			outfile.write('          - name: "{{ item }}"\n') #von uri name holen
-			outfile.write('            virtualSwitchType: Standard\n')
-			outfile.write('            version: \n')
-			outfile.write('            virtualSwitchPortGroups:\n')
-			outfile.write('            - name: "{{ portgroup_name }}"\n')
-			outfile.write('              networkUris:\n')
-			outfile.write('              - "{{ network_uri }}"\n')
-			outfile.write('              vlan: "0"\n')
-			outfile.write('              virtualSwitchPorts:\n')
-			outfile.write('              - virtualPortPurpose:\n')
-			outfile.write('                - "{{ network_purpose }}"\n')
-			outfile.write('                ipAddress: \n')
-			outfile.write('                subnetMask: \n')
-			outfile.write('                dhcp: true\n')
-			outfile.write('                action: NONE\n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            virtualSwitchUplinks:\n')
-			outfile.write('            - name: Mezz 3:1-d\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            - name: Mezz 3:2-d\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            action: NONE\n')
-			outfile.write('            networkUris:\n')
-			outfile.write('            - "{{ network_uri }}"\n')
-			outfile.write('            with_items: \'{{ var_standardswitches_names }}\'\n')
-			#outfile.write('            no_log: True\n')
-			outfile.write('\n')          #CODE Loop_end      
-			
-			
-			
-			
-			
 			
 			#"connectionSettings" mit networkUri)=network set
 			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches

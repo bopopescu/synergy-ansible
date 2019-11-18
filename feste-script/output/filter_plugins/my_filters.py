@@ -40,15 +40,13 @@ class FilterModule(object):
 		
 		ret = []
 		for networkName in data2:
-			print("now Networkname "+networkName)
+			#print("now Networkname "+networkName)
 			vars = data2[networkName]
-			
-			
-			
+
 			tmp =  {
 				"name": networkName,
 				"virtualSwitchType": "Standard",
-				"version": "",
+				"version": None,
 				"virtualSwitchPortGroups": [
 				  {
 					"name": networkName,
@@ -61,9 +59,9 @@ class FilterModule(object):
 						"virtualPortPurpose": [
 						  vars["purpose"]
 						],
-						"ipAddress": "",
-						"subnetMask": "",
-						"dhcp": "true",
+						"ipAddress": None,
+						"subnetMask": None,
+						"dhcp": True,
 						"action": "NONE"
 					  }
 					],
@@ -73,55 +71,21 @@ class FilterModule(object):
 				"virtualSwitchUplinks": [],
 				"action": "NONE",
 				"networkUris": [
-				  "{{ network_uri }}"
+				  vars["uri"]
 				]
 			  }
-			
-
 
 			for d in data:
 				if(d["networkUri"] == vars["uri"]):
 					tmp2 = {}
 					tmp2["name"] = d["portId"]
-					tmp2["active"] = "false"
-					tmp2["mac"] = ""
-					tmp2["vmnic"] = ""
+					tmp2["active"] = False
+					tmp2["mac"] = None
+					tmp2["vmnic"] = None
 					tmp2["action"] = "NONE"
 					tmp["virtualSwitchUplinks"].append(tmp2)
 			ret.append(tmp)
 
-
-
-			"""
-			ret = ret+'  - name: "'+networkName+'"\n'
-			ret = ret+'    virtualSwitchType: Standard\n'
-			ret = ret+'    version: \n'
-			ret = ret+'    virtualSwitchPortGroups:\n'
-			ret = ret+'    - name: "'+networkName+'"\n'
-			ret = ret+'      networkUris:\n'
-			ret = ret+'      - "'+vars["uri"]+'"\n'
-			ret = ret+'      vlan: "0"\n'
-			ret = ret+'      virtualSwitchPorts:\n'
-			ret = ret+'      - virtualPortPurpose:\n'
-			ret = ret+'        - "'+vars["purpose"]+'"\n'
-			ret = ret+'        ipAddress: \n'
-			ret = ret+'        subnetMask: \n'
-			ret = ret+'        dhcp: true\n'
-			ret = ret+'        action: NONE\n'
-			ret = ret+'      action: NONE\n'
-			ret = ret+'    virtualSwitchUplinks:\n'
-			for d in data:
-				if(d["networkUri"] == vars["uri"]):
-					ret = ret+'    - name: '+d["portId"]+'\n'
-					ret = ret+'      active: false\n'
-					ret = ret+'      mac: \n'
-					ret = ret+'      vmnic: \n'
-					ret = ret+'      action: NONE\n'
-			ret = ret+'    action: NONE\n'
-			ret = ret+'    networkUris:\n'
-			ret = ret+'    - "'+vars["uri"]+'"\n'
-			"""
-		print(json.dumps(ret))
-			
+		#print(json.dumps(ret))
 		return json.dumps(ret)
 		
