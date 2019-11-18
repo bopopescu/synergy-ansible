@@ -42,6 +42,8 @@ class FilterModule(object):
 		for networkName in data2:
 			#print("now Networkname "+networkName)
 			vars = data2[networkName]
+			if(networkName == "iSCSI-Deployment"):
+				continue
 
 			tmp =  {
 				"name": networkName,
