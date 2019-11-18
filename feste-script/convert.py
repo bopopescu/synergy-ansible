@@ -44,6 +44,8 @@ variablesNimbleAll = {}
 variablesSynergyNimbleAll = {}
 variablesHypervisorAll = {}
 variablesClustersAll = []
+variableHVCPserverpassword = ""
+variableHVCPmgmtNet = ""
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -266,7 +268,7 @@ def findSynergyNimbles():
 
 
 def findHypervisor():
-	global variablesHypervisorAll,variablesClustersAll
+	global variablesHypervisorAll,variablesClustersAll,variableHVCPserverpassword,variableHVCPmgmtNet
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
 	worksheet = workbook.sheet_by_name(exceltabhypervisor)
@@ -324,10 +326,44 @@ def findHypervisor():
 		
 		#found valid line
 		if(not name in variablesClustersAll):
-			variablesClustersAll.append(name)	
-
-
-
+			variablesClustersAll.append(name)
+			
+	#serverpassword
+	start = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,5))
+		
+		if(name==""):
+			continue
+			
+		if(name=="serverPassword"):
+			start = True
+			continue
+			
+		if(not start):
+			continue
+		
+		variableHVCPserverpassword = name
+		break
+		
+	#variableHVCPmgmtNet
+	start = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,4))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Management Network"):
+			start = True
+			continue
+			
+		if(not start):
+			continue
+		
+		variableHVCPmgmtNet = name
+		break
+		
 ############################################################################
 ############## Write Config and Fileheaders functions ######################
 ############################################################################
@@ -1910,7 +1946,40 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 		
 
 #18
-def writeAddHypervisorClusterProfile(nr,filenamepart):		
+def writeAddHypervisorClusterProfile(nr,filenamepart):
+
+	#get MGMT Net Variables
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabsubnets)
+	
+	variablesHead = []
+	variablesMgmtNet = {}
+	for col in range(worksheet.ncols):
+		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
+		variablesHead.append(name)
+	
+	for row in range(1,worksheet.nrows):
+		variablesOneNet = {}
+		for col in range(worksheet.ncols):
+			val = worksheet.cell_value(row,col)
+			
+			if(isinstance(val,float)):
+				val = str(int(val))
+			
+			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
+				val = ""
+			
+			if(val.find("#TODO") != -1):
+				pos = val.find("#TODO")
+				val = val[:pos-1]
+			
+			if(val!=""):
+				variablesOneNet[variablesHead[col]] = val
+		
+		if(variablesOneNet["name"]==variableHVCPmgmtNet):
+			variablesMgmtNet = variablesOneNet
+
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
@@ -1945,8 +2014,6 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
 		outfile.write('    no_log: True\n')
 		outfile.write('\n')
-		#outfile.write('  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]\n')
-		#outfile.write('\n')
 		
 		#get standardswitchesUri and distributedswitchesUri
 		outfile.write('  - set_fact: var_standardswitches_uris={{[]}}\n')
@@ -1997,19 +2064,29 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('    with_items: "{{ var_distributedswitches_uris }}"\n')
 		outfile.write('    no_log: True\n')
 		outfile.write('\n')
-		
-		
-		outfile.write('  - set_fact: var_standardswitchesrequest="{{[] | standardswitchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw)}}"\n')
-		outfile.write('  - debug: var=var_standardswitchesrequest\n')
+		outfile.write('  - name: uri to name distributedswitches\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: "https://'+hostname+'{{ item }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_distributedswitches_networks_raw\n')
+		outfile.write('    with_items: \'{{ var_distributedswitches_names_raw["results"][0]["json"]["networkUris"] }}\'\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: var_switchesrequest="{{[] | switchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw,var_distributedswitches_uris,var_distributedswitches_names_raw,"'+frame["letter"]+'",server_profile_templates[0]["connectionSettings"]["connections"],var_distributedswitches_networks_raw["results"])}}"\n')
+		#outfile.write('  - debug: var=var_switchesrequest\n')
 		outfile.write('\n')	
 
+		#outfile.write('  - meta: end_play\n')
+		#outfile.write('  - pause:\n')
 
-		"""
-		outfile.write('  - meta: end_play\n')
-		outfile.write('  - pause:\n')
-		"""
-
-		
 		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
 				continue
@@ -2027,17 +2104,8 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('      body_format: json\n')
 			outfile.write('      body:\n')
 			outfile.write('        type: HypervisorClusterProfileV3\n')
-			outfile.write('        name: "'+cluster+'"\n')
 			outfile.write('        description: ""\n')
 			outfile.write('        hypervisorType: Vmware\n')
-			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
-			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
-			outfile.write('        mgmtIpSettingsOverride:\n')
-			outfile.write('          netmask: "mgt_network_netmaskTODO"\n') #CODE
-			outfile.write('          gateway: "mgt_network_gatewayTODO"\n') #CODE
-			outfile.write('          dnsDomain: "mgt_network_domainTODO"\n') #CODE
-			outfile.write('          primaryDns: "mgt_network_dns1TODO"\n') #CODE
-			outfile.write('          secondaryDns: "mgt_network_dns2TODO"\n') #CODE
 			outfile.write('        hypervisorClusterSettings:\n')
 			outfile.write('          type: "Vmware"\n')
 			outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
@@ -2049,7 +2117,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('        hypervisorHostProfileTemplate:\n')
 			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
 			outfile.write('          deploymentPlan:\n')
-			outfile.write('            serverPassword: "serverPasswordTODO"\n') #CODE
+			outfile.write('            serverPassword: "'+variableHVCPserverpassword+'"\n')
 			outfile.write('            deploymentCustomArgs: []\n')
 			outfile.write('          hostprefix: "'+cluster+'"\n')
 			outfile.write('          hostConfigPolicy:\n')
@@ -2058,92 +2126,23 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('          virtualSwitchConfigPolicy:\n')
 			outfile.write('            manageVirtualSwitches: true\n')
 			outfile.write('            configurePortGroups: true\n')
-			outfile.write('          virtualSwitches: "{{var_standardswitchesrequest}}"\n')
-			
-			
-			
-			
-			"""
-
-			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches (stehen in var_mylist)
-			outfile.write('          - name: "{{ item }}"\n') #von uri name holen
-			outfile.write('            virtualSwitchType: Standard\n')
-			outfile.write('            version: \n')
-			outfile.write('            virtualSwitchPortGroups:\n')
-			outfile.write('            - name: "{{ portgroup_name }}"\n')
-			outfile.write('              networkUris:\n')
-			outfile.write('              - "{{ network_uri }}"\n')
-			outfile.write('              vlan: "0"\n')
-			outfile.write('              virtualSwitchPorts:\n')
-			outfile.write('              - virtualPortPurpose:\n')
-			outfile.write('                - "{{ network_purpose }}"\n')
-			outfile.write('                ipAddress: \n')
-			outfile.write('                subnetMask: \n')
-			outfile.write('                dhcp: true\n')
-			outfile.write('                action: NONE\n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            virtualSwitchUplinks:\n')
-			outfile.write('            - name: Mezz 3:1-d\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            - name: Mezz 3:2-d\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            action: NONE\n')
-			outfile.write('            networkUris:\n')
-			outfile.write('            - "{{ network_uri }}"\n')
-			outfile.write('            with_items: \'{{ var_standardswitches_names }}\'\n')
-			#outfile.write('            no_log: True\n')
-			outfile.write('\n')          #CODE Loop_end      
-			
-			
-			
-			
-			
-			
-			#"connectionSettings" mit networkUri)=network set
-			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
-			outfile.write('          - name: "{{ vswitch_name }}"\n') #Synergy-VMware Z66ff
-			outfile.write('            virtualSwitchType: Distributed\n')
-			outfile.write('            version: 6.6.0\n')
-			outfile.write('            virtualSwitchPortGroups:\n')
-			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet ||| abfragen: "/rest/network-sets/a6aa4b3e-1671-4f8f-b91b-62438c8c3762
-			outfile.write('            - name: "{{ network_name }}"\n') 
-			outfile.write('              networkUris:\n')
-			outfile.write('              - "{{ network_uri }}"\n')
-			outfile.write('              vlan: "{{ network_vlan }}"\n')
-			outfile.write('              virtualSwitchPorts: []\n')
-			outfile.write('              action: NONE\n')
-			outfile.write('\n')        	#CODE Loop_end
-			outfile.write('            virtualSwitchUplinks:\n')
-			outfile.write('            - name: Mezz 3:1-f\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            - name: Mezz 3:2-f\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            action: NONE\n')
-			outfile.write('            networkUris:\n')
-			outfile.write('            - "{{ networkset_uri }}"\n')
-			outfile.write('\n')        #CODE Loop_end
-			"""
-			
-			
-			
+			outfile.write('          virtualSwitches: "{{var_switchesrequest}}"\n')
+			outfile.write('        name: "'+cluster+'"\n')
+			outfile.write('        mgmtIpSettingsOverride:\n')
+			outfile.write('          netmask: "'+variablesMgmtNet["subnetmask"]+'"\n')
+			outfile.write('          gateway: "'+variablesMgmtNet["gateway"]+'"\n')
+			outfile.write('          dnsDomain: "'+variablesMgmtNet["domain"]+'"\n')
+			outfile.write('          primaryDns: "'+variablesMgmtNet["dnsserver1"]+'"\n')
+			outfile.write('          secondaryDns: "'+variablesMgmtNet["dnsserver2"]+'"\n')
+			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
+			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
+			outfile.write('        initialScopeUris: []\n')
 			outfile.write('      status_code: 202\n')
 			outfile.write('    register: var_return\n')
 			outfile.write('\n')
-			outfile.write('  - debug:\n')
-			outfile.write('      var: var_return\n')
-			outfile.write('\n')
+			#outfile.write('  - debug:\n')
+			#outfile.write('      var: var_return\n')
+			#outfile.write('\n')
 		#END
 		outfile.close()
 
@@ -2459,7 +2458,6 @@ def main():
 	findSynergyNimbles()
 	findHypervisor()
 	writeConfigs()
-	"""
 	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
 	writeAddHypervisorManager("03","addhypervisormanager")
@@ -2477,15 +2475,12 @@ def main():
 	writeCreatedeploymentplan("15","createdeploymentplan")
 	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
 	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
-	"""
 	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo implement
-	"""
 	writeRenameEnclosures("19","renameenclosures")
 	writeCreateVolumeTemplate("20","createvolumetemplate")
 	writeCreateVolumes("21","createvolumes")
 	#22	Add Volumes to Hypervisor Cluster profile
 	#23	Add Hypervisors TO HVCP
-	"""
 	
 #start
 main()

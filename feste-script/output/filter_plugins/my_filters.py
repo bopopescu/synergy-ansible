@@ -3,7 +3,7 @@ class FilterModule(object):
 	def filters(self):
 		return {
 			'assign_nimble_port': self.assign_nimble_port,
-			'standardswitchesrequest': self.standardswitchesrequest,
+			'switchesrequest': self.switchesrequest,
 		}
 
 	def assign_nimble_port(self, nimble_json, port_name, network_uri):
@@ -13,7 +13,11 @@ class FilterModule(object):
 				p['mode'] = "Managed"
 		return nimble_json
 		
-	def standardswitchesrequest(self, tmp, eins, uris, zwei):		
+	def switchesrequest(self, tmp, eins, uris, zwei, uris2, drei, letter, connections, distributedswitches_networks):
+	
+		###############
+		###############		Standard
+		###############
 		data = []
 		uniqueNetworkNames = []
 		for e in eins:
@@ -24,31 +28,27 @@ class FilterModule(object):
 				tmp["id"] = e["id"]
 				tmp["portId"] = e["portId"]
 				data.append(tmp)
-		#print(data)
-		
+
 		data2 = {}
 		for z in zwei["results"]:
 			tmp = {}
 			z = z["json"]
-			#print(z)
 			tmp["name"] = z["name"]
 			tmp["uri"] = z["uri"]
 			tmp["vlanId"] = z["vlanId"]
 			tmp["purpose"] = z["purpose"]
 			data2[z["name"]]=tmp
-		#print(data2)
-		
+
 		ret = []
 		for networkName in data2:
-			print("now Networkname "+networkName)
 			vars = data2[networkName]
-			
-			
-			
+			if(networkName == "iSCSI-Deployment"):
+				continue
+
 			tmp =  {
 				"name": networkName,
 				"virtualSwitchType": "Standard",
-				"version": "",
+				"version": None,
 				"virtualSwitchPortGroups": [
 				  {
 					"name": networkName,
@@ -61,9 +61,9 @@ class FilterModule(object):
 						"virtualPortPurpose": [
 						  vars["purpose"]
 						],
-						"ipAddress": "",
-						"subnetMask": "",
-						"dhcp": "true",
+						"ipAddress": None,
+						"subnetMask": None,
+						"dhcp": True,
 						"action": "NONE"
 					  }
 					],
@@ -73,55 +73,86 @@ class FilterModule(object):
 				"virtualSwitchUplinks": [],
 				"action": "NONE",
 				"networkUris": [
-				  "{{ network_uri }}"
+				  vars["uri"]
 				]
 			  }
-			
-
 
 			for d in data:
 				if(d["networkUri"] == vars["uri"]):
 					tmp2 = {}
 					tmp2["name"] = d["portId"]
-					tmp2["active"] = "false"
-					tmp2["mac"] = ""
-					tmp2["vmnic"] = ""
+					tmp2["active"] = False
+					tmp2["mac"] = None
+					tmp2["vmnic"] = None
 					tmp2["action"] = "NONE"
 					tmp["virtualSwitchUplinks"].append(tmp2)
 			ret.append(tmp)
 
 
+		###############
+		###############		DISTRIBUTED
+		###############		
+		dataD = []
+		data3 = {}
+		for z in drei["results"]:
+			tmp = {}
+			z = z["json"]
+			tmp["name"] = z["name"]
+			tmp["uri"] = z["uri"]
+			tmp["networkUris"] = z["networkUris"]
+			data3[z["name"]]=tmp
 
-			"""
-			ret = ret+'  - name: "'+networkName+'"\n'
-			ret = ret+'    virtualSwitchType: Standard\n'
-			ret = ret+'    version: \n'
-			ret = ret+'    virtualSwitchPortGroups:\n'
-			ret = ret+'    - name: "'+networkName+'"\n'
-			ret = ret+'      networkUris:\n'
-			ret = ret+'      - "'+vars["uri"]+'"\n'
-			ret = ret+'      vlan: "0"\n'
-			ret = ret+'      virtualSwitchPorts:\n'
-			ret = ret+'      - virtualPortPurpose:\n'
-			ret = ret+'        - "'+vars["purpose"]+'"\n'
-			ret = ret+'        ipAddress: \n'
-			ret = ret+'        subnetMask: \n'
-			ret = ret+'        dhcp: true\n'
-			ret = ret+'        action: NONE\n'
-			ret = ret+'      action: NONE\n'
-			ret = ret+'    virtualSwitchUplinks:\n'
-			for d in data:
+		for e in eins:
+			if("network-set" in e["networkUri"]):
+				tmp = {}
+				tmp["networkUri"] = e["networkUri"]
+				tmp["name"] = e["name"]
+				tmp["id"] = e["id"]
+				tmp["portId"] = e["portId"]
+				dataD.append(tmp)
+
+		for networkName in data3:
+			vars = data3[networkName]
+			tmp =  {
+				"name": letter+"-Prod",
+				"virtualSwitchType": "Distributed",
+				"version": "6.6.0",
+				"virtualSwitchPortGroups": [],
+				"virtualSwitchUplinks": [],
+				"action": "NONE",
+				"networkUris": [
+				  vars["uri"]
+				]
+			  }
+
+			for d in distributedswitches_networks:
+				tmp2 = {}
+				d = d["json"]
+				tmp2["name"] = d["name"]
+				tmp2["networkUris"] = [d["uri"]]
+				tmp2["vlan"] = d["vlanId"]
+				tmp2["virtualSwitchPorts"] = []
+				tmp2["action"] = "NONE"
+				tmp["virtualSwitchPortGroups"].append(tmp2)
+					
+			names = []
+			for d in dataD:
 				if(d["networkUri"] == vars["uri"]):
-					ret = ret+'    - name: '+d["portId"]+'\n'
-					ret = ret+'      active: false\n'
-					ret = ret+'      mac: \n'
-					ret = ret+'      vmnic: \n'
-					ret = ret+'      action: NONE\n'
-			ret = ret+'    action: NONE\n'
-			ret = ret+'    networkUris:\n'
-			ret = ret+'    - "'+vars["uri"]+'"\n'
-			"""
-		print(json.dumps(ret))
-			
+					if(not d["name"] in names):
+						names.append(d["name"])
+						
+			for c in connections:
+				if(c["name"] in names):
+					tmp2 = {
+							"name":c["portId"],
+							"active": False,
+							"mac": None,
+							"vmnic": None,
+							"action": "NONE"
+						}
+					tmp["virtualSwitchUplinks"].append(tmp2)
+					
+			ret.append(tmp)
+
 		return json.dumps(ret)
 		
