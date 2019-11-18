@@ -45,6 +45,7 @@ variablesSynergyNimbleAll = {}
 variablesHypervisorAll = {}
 variablesClustersAll = []
 variableHVCPserverpassword = ""
+variableHVCPmgmtNet = ""
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -267,7 +268,7 @@ def findSynergyNimbles():
 
 
 def findHypervisor():
-	global variablesHypervisorAll,variablesClustersAll,variableHVCPserverpassword
+	global variablesHypervisorAll,variablesClustersAll,variableHVCPserverpassword,variableHVCPmgmtNet
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
 	worksheet = workbook.sheet_by_name(exceltabhypervisor)
@@ -344,7 +345,25 @@ def findHypervisor():
 		
 		variableHVCPserverpassword = name
 		break
-
+		
+	#variableHVCPmgmtNet
+	start = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,4))
+		
+		if(name==""):
+			continue
+			
+		if(name=="Management Network"):
+			start = True
+			continue
+			
+		if(not start):
+			continue
+		
+		variableHVCPmgmtNet = name
+		break
+		
 ############################################################################
 ############## Write Config and Fileheaders functions ######################
 ############################################################################
@@ -1927,7 +1946,40 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 		
 
 #18
-def writeAddHypervisorClusterProfile(nr,filenamepart):		
+def writeAddHypervisorClusterProfile(nr,filenamepart):
+
+	#get MGMT Net Variables
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabsubnets)
+	
+	variablesHead = []
+	variablesMgmtNet = {}
+	for col in range(worksheet.ncols):
+		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
+		variablesHead.append(name)
+	
+	for row in range(1,worksheet.nrows):
+		variablesOneNet = {}
+		for col in range(worksheet.ncols):
+			val = worksheet.cell_value(row,col)
+			
+			if(isinstance(val,float)):
+				val = str(int(val))
+			
+			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
+				val = ""
+			
+			if(val.find("#TODO") != -1):
+				pos = val.find("#TODO")
+				val = val[:pos-1]
+			
+			if(val!=""):
+				variablesOneNet[variablesHead[col]] = val
+		
+		if(variablesOneNet["name"]==variableHVCPmgmtNet):
+			variablesMgmtNet = variablesOneNet
+
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
@@ -2077,11 +2129,11 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('          virtualSwitches: "{{var_switchesrequest}}"\n')
 			outfile.write('        name: "'+cluster+'"\n')
 			outfile.write('        mgmtIpSettingsOverride:\n')
-			outfile.write('          netmask: "mgt_network_netmaskTODO"\n') #CODE
-			outfile.write('          gateway: "mgt_network_gatewayTODO"\n') #CODE
-			outfile.write('          dnsDomain: "mgt_network_domainTODO"\n') #CODE
-			outfile.write('          primaryDns: "mgt_network_dns1TODO"\n') #CODE
-			outfile.write('          secondaryDns: "mgt_network_dns2TODO"\n') #CODE
+			outfile.write('          netmask: "'+variablesMgmtNet["subnetmask"]+'"\n')
+			outfile.write('          gateway: "'+variablesMgmtNet["gateway"]+'"\n')
+			outfile.write('          dnsDomain: "'+variablesMgmtNet["domain"]+'"\n')
+			outfile.write('          primaryDns: "'+variablesMgmtNet["dnsserver1"]+'"\n')
+			outfile.write('          secondaryDns: "'+variablesMgmtNet["dnsserver2"]+'"\n')
 			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
 			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
 			outfile.write('        initialScopeUris: []\n')
