@@ -44,6 +44,7 @@ variablesNimbleAll = {}
 variablesSynergyNimbleAll = {}
 variablesHypervisorAll = {}
 variablesClustersAll = []
+variableHVCPserverpassword = ""
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -266,7 +267,7 @@ def findSynergyNimbles():
 
 
 def findHypervisor():
-	global variablesHypervisorAll,variablesClustersAll
+	global variablesHypervisorAll,variablesClustersAll,variableHVCPserverpassword
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
 	worksheet = workbook.sheet_by_name(exceltabhypervisor)
@@ -324,9 +325,25 @@ def findHypervisor():
 		
 		#found valid line
 		if(not name in variablesClustersAll):
-			variablesClustersAll.append(name)	
-
-
+			variablesClustersAll.append(name)
+			
+	#serverpassword
+	start = False
+	for row in range(worksheet.nrows):
+		name = str(worksheet.cell_value(row,5))
+		
+		if(name==""):
+			continue
+			
+		if(name=="serverPassword"):
+			start = True
+			continue
+			
+		if(not start):
+			continue
+		
+		variableHVCPserverpassword = name
+		break
 
 ############################################################################
 ############## Write Config and Fileheaders functions ######################
@@ -1945,8 +1962,6 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
 		outfile.write('    no_log: True\n')
 		outfile.write('\n')
-		#outfile.write('  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]\n')
-		#outfile.write('\n')
 		
 		#get standardswitchesUri and distributedswitchesUri
 		outfile.write('  - set_fact: var_standardswitches_uris={{[]}}\n')
@@ -1997,19 +2012,29 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('    with_items: "{{ var_distributedswitches_uris }}"\n')
 		outfile.write('    no_log: True\n')
 		outfile.write('\n')
-		
-		
-		outfile.write('  - set_fact: var_switchesrequest="{{[] | switchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw,var_distributedswitches_uris,var_distributedswitches_names_raw,"'+frame["letter"]+'",server_profile_templates[0]["connectionSettings"]["connections"])}}"\n')
-		outfile.write('  - debug: var=var_switchesrequest\n')
+		outfile.write('  - name: uri to name distributedswitches\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: "https://'+hostname+'{{ item }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_distributedswitches_networks_raw\n')
+		outfile.write('    with_items: \'{{ var_distributedswitches_names_raw["results"][0]["json"]["networkUris"] }}\'\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: var_switchesrequest="{{[] | switchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw,var_distributedswitches_uris,var_distributedswitches_names_raw,"'+frame["letter"]+'",server_profile_templates[0]["connectionSettings"]["connections"],var_distributedswitches_networks_raw["results"])}}"\n')
+		#outfile.write('  - debug: var=var_switchesrequest\n')
 		outfile.write('\n')	
 
+		#outfile.write('  - meta: end_play\n')
+		#outfile.write('  - pause:\n')
 
-		"""
-		outfile.write('  - meta: end_play\n')
-		outfile.write('  - pause:\n')
-		"""
-
-		
 		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
 				continue
@@ -2040,7 +2065,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('        hypervisorHostProfileTemplate:\n')
 			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
 			outfile.write('          deploymentPlan:\n')
-			outfile.write('            serverPassword: "serverPasswordTODO"\n') #CODE F60 Synergy-VMWARE
+			outfile.write('            serverPassword: "'+variableHVCPserverpassword+'"\n')
 			outfile.write('            deploymentCustomArgs: []\n')
 			outfile.write('          hostprefix: "'+cluster+'"\n')
 			outfile.write('          hostConfigPolicy:\n')
@@ -2063,9 +2088,9 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('      status_code: 202\n')
 			outfile.write('    register: var_return\n')
 			outfile.write('\n')
-			outfile.write('  - debug:\n')
-			outfile.write('      var: var_return\n')
-			outfile.write('\n')
+			#outfile.write('  - debug:\n')
+			#outfile.write('      var: var_return\n')
+			#outfile.write('\n')
 		#END
 		outfile.close()
 
@@ -2381,7 +2406,6 @@ def main():
 	findSynergyNimbles()
 	findHypervisor()
 	writeConfigs()
-	"""
 	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
 	writeAddHypervisorManager("03","addhypervisormanager")
@@ -2399,15 +2423,12 @@ def main():
 	writeCreatedeploymentplan("15","createdeploymentplan")
 	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
 	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
-	"""
 	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo implement
-	"""
 	writeRenameEnclosures("19","renameenclosures")
 	writeCreateVolumeTemplate("20","createvolumetemplate")
 	writeCreateVolumes("21","createvolumes")
 	#22	Add Volumes to Hypervisor Cluster profile
 	#23	Add Hypervisors TO HVCP
-	"""
 	
 #start
 main()

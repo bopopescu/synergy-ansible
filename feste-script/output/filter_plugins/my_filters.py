@@ -13,7 +13,7 @@ class FilterModule(object):
 				p['mode'] = "Managed"
 		return nimble_json
 		
-	def switchesrequest(self, tmp, eins, uris, zwei, uris2, drei, letter, connections):
+	def switchesrequest(self, tmp, eins, uris, zwei, uris2, drei, letter, connections, distributedswitches_networks):
 	
 		###############
 		###############		Standard
@@ -102,7 +102,6 @@ class FilterModule(object):
 			tmp["networkUris"] = z["networkUris"]
 			data3[z["name"]]=tmp
 
-		
 		for e in eins:
 			if("network-set" in e["networkUri"]):
 				tmp = {}
@@ -114,7 +113,6 @@ class FilterModule(object):
 
 		for networkName in data3:
 			vars = data3[networkName]
-
 			tmp =  {
 				"name": letter+"-Prod",
 				"virtualSwitchType": "Distributed",
@@ -127,22 +125,24 @@ class FilterModule(object):
 				]
 			  }
 
+			for d in distributedswitches_networks:
+				tmp2 = {}
+				d = d["json"]
+				tmp2["name"] = d["name"]
+				tmp2["networkUris"] = [d["uri"]]
+				tmp2["vlan"] = d["vlanId"]
+				tmp2["virtualSwitchPorts"] = []
+				tmp2["action"] = "NONE"
+				tmp["virtualSwitchPortGroups"].append(tmp2)
+					
 			names = []
 			for d in dataD:
 				if(d["networkUri"] == vars["uri"]):
-					tmp2 = {}
-					tmp2["name"] = d["name"]
 					if(not d["name"] in names):
 						names.append(d["name"])
-					tmp2["networkUris"] = [d["networkUri"]]
-					#tmp2["vlan"] = d["vlanId"]
-					tmp2["virtualSwitchPorts"] = []
-					tmp2["action"] = "NONE"
-					tmp["virtualSwitchPortGroups"].append(tmp2)
-
+						
 			for c in connections:
 				if(c["name"] in names):
-					
 					tmp2 = {
 							"name":c["portId"],
 							"active": False,
