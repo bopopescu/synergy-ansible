@@ -1932,33 +1932,83 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('      body:\n')
 		outfile.write('      status_code: 200\n')
 		outfile.write('    register: var_hypervisor_managers\n')
+		outfile.write('    no_log: True\n')
 		outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
+		outfile.write('    no_log: True\n')
 		outfile.write('\n')
 		outfile.write('  - name: Gather Server Profile Template Nublar_ESXi uri\n')
 		outfile.write('    oneview_server_profile_template_facts:\n')
 		outfile.write('      config: "{{ config }}"\n')
 		outfile.write('      name: "Nublar_ESXi"\n')
 		outfile.write('    delegate_to: localhost\n')
+		outfile.write('    no_log: True\n')
 		outfile.write('  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
+		outfile.write('    no_log: True\n')
 		outfile.write('\n')
-		outfile.write('  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]\n')
-		outfile.write('\n')
+		#outfile.write('  - debug: var=server_profile_templates[0]["connectionSettings"]["connections"]\n')
+		#outfile.write('\n')
+		
+		#get standardswitchesUri and distributedswitchesUri
 		outfile.write('  - set_fact: var_standardswitches_uris={{[]}}\n')
 		outfile.write('  - set_fact: var_standardswitches_uris="{{var_standardswitches_uris + [item[\'networkUri\']]}}"\n')
 		outfile.write('    when: item[\'networkUri\'] not in var_standardswitches_uris and item[\'networkUri\'] is search("/ethernet-networks/")\n')
 		outfile.write('    with_items: \'{{ server_profile_templates[0]["connectionSettings"]["connections"] }}\'\n')
 		outfile.write('    no_log: True\n')
-		outfile.write('  - debug: var=var_standardswitches_uris\n')
+		#outfile.write('  - debug: var=var_standardswitches_uris\n')
 		outfile.write('\n')
 		outfile.write('  - set_fact: var_distributedswitches_uris={{[]}}\n')
 		outfile.write('  - set_fact: var_distributedswitches_uris="{{var_distributedswitches_uris + [item[\'networkUri\']]}}"\n')
 		outfile.write('    when: item[\'networkUri\'] not in var_distributedswitches_uris and item[\'networkUri\'] is search("/network-sets/")\n')
 		outfile.write('    with_items: \'{{ server_profile_templates[0]["connectionSettings"]["connections"] }}\'\n')
 		outfile.write('    no_log: True\n')
-		outfile.write('  - debug: var=var_distributedswitches_uris\n')
+		#outfile.write('  - debug: var=var_distributedswitches_uris\n')
 		outfile.write('\n')
 		
-		#TODO 2x URI to names
+		#2x URI to names
+		outfile.write('  - name: uri to name standardswitches\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: "https://'+hostname+'{{ item }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_standardswitches_names_raw\n')
+		outfile.write('    with_items: "{{ var_standardswitches_uris }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - name: uri to name distributedswitches\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: "https://'+hostname+'{{ item }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_distributedswitches_names_raw\n')
+		outfile.write('    with_items: "{{ var_distributedswitches_uris }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		
+		
+		outfile.write('  - set_fact: var_standardswitchesrequest="{{[] | standardswitchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw)}}"\n')
+		outfile.write('  - debug: var=var_standardswitchesrequest\n')
+		outfile.write('\n')	
+
+
+		"""
+		outfile.write('  - meta: end_play\n')
+		outfile.write('  - pause:\n')
+		"""
+
 		
 		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
@@ -1983,11 +2033,11 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
 			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
 			outfile.write('        mgmtIpSettingsOverride:\n')
-			outfile.write('          netmask: "{{ mgt_network_netmask }}"\n')
-			outfile.write('          gateway: "{{ mgt_network_gateway }}"\n')
-			outfile.write('          dnsDomain: "{{ mgt_network_domain }}"\n')
-			outfile.write('          primaryDns: "{{ mgt_network_dns1 }}"\n')
-			outfile.write('          secondaryDns: "{{ mgt_network_dns2 }}"\n')
+			outfile.write('          netmask: "mgt_network_netmaskTODO"\n') #CODE
+			outfile.write('          gateway: "mgt_network_gatewayTODO"\n') #CODE
+			outfile.write('          dnsDomain: "mgt_network_domainTODO"\n') #CODE
+			outfile.write('          primaryDns: "mgt_network_dns1TODO"\n') #CODE
+			outfile.write('          secondaryDns: "mgt_network_dns2TODO"\n') #CODE
 			outfile.write('        hypervisorClusterSettings:\n')
 			outfile.write('          type: "Vmware"\n')
 			outfile.write('          drsEnabled: '+("true" if (variablesHypervisorAll["distributed_resource_scheduler"]=="Enabled") else "false")+'\n')
@@ -1999,7 +2049,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('        hypervisorHostProfileTemplate:\n')
 			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
 			outfile.write('          deploymentPlan:\n')
-			outfile.write('            serverPassword: "{{ serverPassword }}"\n')
+			outfile.write('            serverPassword: "serverPasswordTODO"\n') #CODE
 			outfile.write('            deploymentCustomArgs: []\n')
 			outfile.write('          hostprefix: "'+cluster+'"\n')
 			outfile.write('          hostConfigPolicy:\n')
@@ -2008,15 +2058,15 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('          virtualSwitchConfigPolicy:\n')
 			outfile.write('            manageVirtualSwitches: true\n')
 			outfile.write('            configurePortGroups: true\n')
-			outfile.write('          virtualSwitches:\n')
+			outfile.write('          virtualSwitches: "{{var_standardswitchesrequest}}"\n')
 			
 			
 			
 			
-			
+			"""
 
 			outfile.write('\n')        #CODE Loop_start über alle Standard-Switches (stehen in var_mylist)
-			outfile.write('          - name: "{{ vswitch_name }}"\n') #von uri name holen
+			outfile.write('          - name: "{{ item }}"\n') #von uri name holen
 			outfile.write('            virtualSwitchType: Standard\n')
 			outfile.write('            version: \n')
 			outfile.write('            virtualSwitchPortGroups:\n')
@@ -2046,6 +2096,8 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('            action: NONE\n')
 			outfile.write('            networkUris:\n')
 			outfile.write('            - "{{ network_uri }}"\n')
+			outfile.write('            with_items: \'{{ var_standardswitches_names }}\'\n')
+			#outfile.write('            no_log: True\n')
 			outfile.write('\n')          #CODE Loop_end      
 			
 			
@@ -2082,7 +2134,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('            networkUris:\n')
 			outfile.write('            - "{{ networkset_uri }}"\n')
 			outfile.write('\n')        #CODE Loop_end
-			
+			"""
 			
 			
 			
@@ -2407,6 +2459,7 @@ def main():
 	findSynergyNimbles()
 	findHypervisor()
 	writeConfigs()
+	"""
 	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
 	writeAddHypervisorManager("03","addhypervisormanager")
@@ -2424,11 +2477,15 @@ def main():
 	writeCreatedeploymentplan("15","createdeploymentplan")
 	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
 	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
+	"""
 	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo implement
+	"""
 	writeRenameEnclosures("19","renameenclosures")
 	writeCreateVolumeTemplate("20","createvolumetemplate")
 	writeCreateVolumes("21","createvolumes")
-	#22	Add Hypervisors
+	#22	Add Volumes to Hypervisor Cluster profile
+	#23	Add Hypervisors TO HVCP
+	"""
 	
 #start
 main()
