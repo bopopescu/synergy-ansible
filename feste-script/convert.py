@@ -1999,8 +1999,8 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('\n')
 		
 		
-		outfile.write('  - set_fact: var_standardswitchesrequest="{{[] | standardswitchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw)}}"\n')
-		outfile.write('  - debug: var=var_standardswitchesrequest\n')
+		outfile.write('  - set_fact: var_switchesrequest="{{[] | switchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw,var_distributedswitches_uris,var_distributedswitches_names_raw,"'+frame["letter"]+'",server_profile_templates[0]["connectionSettings"]["connections"])}}"\n')
+		outfile.write('  - debug: var=var_switchesrequest\n')
 		outfile.write('\n')	
 
 
@@ -2040,7 +2040,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('        hypervisorHostProfileTemplate:\n')
 			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
 			outfile.write('          deploymentPlan:\n')
-			outfile.write('            serverPassword: "serverPasswordTODO"\n') #CODE
+			outfile.write('            serverPassword: "serverPasswordTODO"\n') #CODE F60 Synergy-VMWARE
 			outfile.write('            deploymentCustomArgs: []\n')
 			outfile.write('          hostprefix: "'+cluster+'"\n')
 			outfile.write('          hostConfigPolicy:\n')
@@ -2049,7 +2049,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('          virtualSwitchConfigPolicy:\n')
 			outfile.write('            manageVirtualSwitches: true\n')
 			outfile.write('            configurePortGroups: true\n')
-			outfile.write('          virtualSwitches: "{{var_standardswitchesrequest}}"\n')
+			outfile.write('          virtualSwitches: "{{var_switchesrequest}}"\n')
 			outfile.write('        name: "'+cluster+'"\n')
 			outfile.write('        mgmtIpSettingsOverride:\n')
 			outfile.write('          netmask: "mgt_network_netmaskTODO"\n') #CODE
@@ -2060,47 +2060,6 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
 			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
 			outfile.write('        initialScopeUris: []\n')
-	
-
-			
-			
-			
-			
-			"""
-			
-			#"connectionSettings" mit networkUri)=network set
-			outfile.write('\n')        #CODE Loop_start über alle Distributed Switches
-			outfile.write('          - name: "{{ vswitch_name }}"\n') #Synergy-VMware Z66ff
-			outfile.write('            virtualSwitchType: Distributed\n')
-			outfile.write('            version: 6.6.0\n')
-			outfile.write('            virtualSwitchPortGroups:\n')
-			outfile.write('\n')        	#CODE Loop_start über alle Netze im netSet ||| abfragen: "/rest/network-sets/a6aa4b3e-1671-4f8f-b91b-62438c8c3762
-			outfile.write('            - name: "{{ network_name }}"\n') 
-			outfile.write('              networkUris:\n')
-			outfile.write('              - "{{ network_uri }}"\n')
-			outfile.write('              vlan: "{{ network_vlan }}"\n')
-			outfile.write('              virtualSwitchPorts: []\n')
-			outfile.write('              action: NONE\n')
-			outfile.write('\n')        	#CODE Loop_end
-			outfile.write('            virtualSwitchUplinks:\n')
-			outfile.write('            - name: Mezz 3:1-f\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            - name: Mezz 3:2-f\n') #CODE aus Server Profile Template
-			outfile.write('              active: false\n')
-			outfile.write('              mac: \n')
-			outfile.write('              vmnic: \n')
-			outfile.write('              action: NONE\n')
-			outfile.write('            action: NONE\n')
-			outfile.write('            networkUris:\n')
-			outfile.write('            - "{{ networkset_uri }}"\n')
-			outfile.write('\n')        #CODE Loop_end
-			"""
-			
-			
-			
 			outfile.write('      status_code: 202\n')
 			outfile.write('    register: var_return\n')
 			outfile.write('\n')
