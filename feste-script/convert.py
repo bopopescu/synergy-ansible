@@ -47,6 +47,7 @@ variablesClustersAll = []
 variableHVCPserverpassword = ""
 variableHVCPmgmtNet = ""
 variablesMgmtNet = {}
+variablesClusterHosts = []
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -396,7 +397,48 @@ def findVariablesMgmtNet():
 		if(variablesOneNet["name"]==variableHVCPmgmtNet):
 			variablesMgmtNet = variablesOneNet
 			
+			
+def findHostsPerCluster():
+	global variablesClusterHosts 
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabhypervisor)
+	
+	started = False
+	headLine = 0
+	for row in range(0,worksheet.nrows):
+		name = convertToAnsibleVariableName(worksheet.cell_value(row,0))
+		if(name=="hypervisors"):
+			started = True
+			headLine = row+1
+			continue
+			
+		if(not started):
+			continue
+			
+		if(row==headLine):
+			variablesHead = []
+			for col in range(worksheet.ncols):
+				name = convertToAnsibleVariableName(worksheet.cell_value(row,col))
+				variablesHead.append(name)
+			continue
+	
+	
 
+		variablesOneClusterHost = {}
+		for col in range(worksheet.ncols):
+			val = worksheet.cell_value(row,col)
+			
+			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
+				val = ""
+			
+			if(val.find("#TODO") != -1):
+				pos = val.find("#TODO")
+				val = val[:pos-1]
+			
+			if(val!=""):
+				variablesOneClusterHost[variablesHead[col]] = val
+		
+		variablesClusterHosts.append(variablesOneClusterHost)
 
 ############################################################################
 ############## Write Config and Fileheaders functions ######################
@@ -2527,6 +2569,7 @@ def writeAddVolumesToHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('    no_log: True\n')
 			outfile.write('  - set_fact: var_current_hvcp_for_this_cluster="{{ var_current_hvcp_for_this_cluster|combine({\'eTag\':None},recursive=True) }}"\n')
 			outfile.write('    no_log: True\n')
+			outfile.write('  - debug: var=var_current_hvcp_for_this_cluster\n')
 			outfile.write('\n')
 			outfile.write('#build temporary Array with all storageVolumeUris to attach. this is item[\'uri\'] from storage_volumes where item[\'name\']=cluster\n')
 			outfile.write('  - set_fact: tmpArray={{[]}}\n')
@@ -2559,17 +2602,248 @@ def writeAddVolumesToHypervisorClusterProfile(nr,filenamepart):
 		#END
 		outfile.close()
 		
-		
+#366
 def writeAddHypervisorsToHVCP(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
 		
 		#BEGIN
 		outfile.write('\n')
-		#TODO #CODE
+		#cluster mit 2-3 hosts, variabel
 		
+		
+		outfile.write('  - name: get Server Hardware\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+hostname+'/rest/server-hardware\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_server_hardware\n')
+		outfile.write('    no_log: True\n')		
+		outfile.write('  - set_fact: var_serverhardware_name_to_uri={{{}}}\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - set_fact: var_serverhardware_name_to_uri="{{ var_serverhardware_name_to_uri | combine({item[\'name\']:item[\'uri\']}) }}"\n')
+		outfile.write('    loop: "{{ var_server_hardware[\'json\'][\'members\'] }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - name: get Hypervisor manager uri\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+hostname+'/rest/hypervisor-managers\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body:\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_hypervisor_managers\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - set_fact: var_hypervisor_manager_uri="{{var_hypervisor_managers["json"]["members"][0]["uri"]}}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - name: Gather Server Profile Template Nublar_ESXi uri\n')
+		outfile.write('    oneview_server_profile_template_facts:\n')
+		outfile.write('      config: "{{ config }}"\n')
+		outfile.write('      name: "Nublar_ESXi"\n')
+		outfile.write('    delegate_to: localhost\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - set_fact: var_server_profile_template_uri="{{server_profile_templates[0]["uri"]}}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - name: Retrieve HVCP as name:uri dict\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "1000"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+hostname+'/rest/hypervisor-cluster-profiles\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_hvcp\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - set_fact: hvcp={{{}}}\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('  - set_fact: hvcp="{{ hvcp | combine({item[\'name\']:item[\'uri\']}) }}"\n')
+		outfile.write('    loop: "{{ var_hvcp.json.members }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		
+		for cluster in variablesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+			"""
+			outfile.write('#Add Hypervisors To HVCP\n')
+			outfile.write('  - name: Add Hypervisors To HVCP '+cluster+'\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "1000"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: "https://'+hostname+'{{ hvcp[\''+cluster+'\'] }}"\n')
+			outfile.write('      method: PUT\n')
+			outfile.write('      body_format: json\n')
+			outfile.write('      body: \n')
+			outfile.write('        type: "HypervisorClusterProfileV3"\n')
+			outfile.write('        name: "Cluster5"\n')
+			outfile.write('        hypervisorType: Vmware\n')
+			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
+			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
+			outfile.write('        hypervisorHostProfileTemplate:\n')
+			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
+			outfile.write('        mgmtIpSettingsOverride:\n')
+			outfile.write('          netmask: "'+variablesMgmtNet["subnetmask"]+'"\n')
+			outfile.write('          gateway: "'+variablesMgmtNet["gateway"]+'"\n')
+			outfile.write('          dnsDomain: "'+variablesMgmtNet["domain"]+'"\n')
+			outfile.write('          primaryDns: "'+variablesMgmtNet["dnsserver1"]+'"\n')
+			outfile.write('          secondaryDns: "'+variablesMgmtNet["dnsserver2"]+'"\n')
+			outfile.write('        addHostRequests:\n')
+			
+			for clusterHost in variablesClusterHosts:
+				if(clusterHost["cluster"]!=cluster):
+					continue
+					
+				outfile.write('        - serverHardwareUri: "{{ var_serverhardware_name_to_uri[\''+clusterHost["server_hardware"]+'\'] }}"\n')
+				outfile.write('          deploymentCustomArgs:\n')
+				outfile.write('          - argumentName: Hostname\n')
+				outfile.write('            argumentValue: '+clusterHost["hostname"]+'\n')
+				outfile.write('          mgmtIp:\n')
+				outfile.write('            ip: clusterHost["management_ipv4_address"]\n')
+			outfile.write('      status_code: 202\n')
+			outfile.write('    no_log: False\n')
+			outfile.write('    register: var_return\n')
+			
+			outfile.write('  - pause:\n')
+			outfile.write('      seconds: 5\n')
+			
+			outfile.write('  - debug: var=var_return\n')
+			outfile.write('#get Task info\n')
+			outfile.write('  - name: get Taskinfo for '+cluster+'\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "1000"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: "{{ var_return[\'location\'] }}"\n')
+			outfile.write('      method: GET\n')
+			outfile.write('      body_format: json\n')
+			outfile.write('      status_code: 200\n')
+			outfile.write('    no_log: False\n')
+			outfile.write('    register: var_return\n')
+			outfile.write('  - debug: var=var_return\n')
+			#outfile.write('  - meta: end_play\n')
+			"""
+
+
+			outfile.write('#get var_current_hvcp_for_this_cluster\n')
+			outfile.write('  - name: get HVCP for '+cluster+'\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "1000"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: "https://'+hostname+'{{ hvcp[\''+cluster+'\'] }}"\n')
+			outfile.write('      method: GET\n')
+			outfile.write('      status_code: 200\n')
+			outfile.write('    no_log: True\n')
+			outfile.write('    register: var_current_hvcp_for_this_cluster\n')
+			outfile.write('\n')
+			outfile.write('#move JSON in var_current_hvcp_for_this_cluster one up, remove eTag\n')
+			outfile.write('  - set_fact: var_current_hvcp_for_this_cluster="{{ var_current_hvcp_for_this_cluster["json"] }}"\n')
+			outfile.write('    no_log: True\n')
+			outfile.write('  - set_fact: var_current_hvcp_for_this_cluster="{{ var_current_hvcp_for_this_cluster|combine({\'eTag\':None},recursive=True) }}"\n')
+			outfile.write('    no_log: True\n')
+			outfile.write('\n')
+			
+			
+			outfile.write('#build temporary Array with all variablesClusterHosts(from python convert.py/excel) to attach.\n')
+			outfile.write('  - set_fact: tmpArray="{{[]}}"\n')
+			outfile.write('    no_log: True\n')
+
+			for clusterHost in variablesClusterHosts:
+				if(clusterHost["cluster"]!=cluster):
+					continue
+					
+				outfile.write('  - set_fact:\n')
+				outfile.write('      t:\n')
+				outfile.write('        serverHardwareUri: "{{ var_serverhardware_name_to_uri[\''+clusterHost["server_hardware"]+'\'] }}"\n')
+				outfile.write('        deploymentCustomArgs:\n')
+				outfile.write('         - argumentName: "Hostname"\n')
+				outfile.write('           argumentValue: "'+clusterHost["hostname"]+'"\n')
+				outfile.write('        mgmtIp:\n')
+				outfile.write('          ip: "'+clusterHost["management_ipv4_address"]+'"\n')
+				outfile.write('  - set_fact: tmpArray="{{ tmpArray + [t] }}"\n')
+				outfile.write('    no_log: True\n')
+				
+			outfile.write('\n')
+			outfile.write('#do attach call via REST-API. Body is var_current_hvcp_for_this_cluster combined with addHostRequests which contains our temp Array\n')
+			outfile.write('  - name: Attach Volumes to Cluster '+cluster+'\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "1000"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: "https://'+hostname+'{{ hvcp[\''+cluster+'\'] }}"\n')
+			outfile.write('      method: PUT\n')
+			outfile.write('      body_format: json\n')
+			outfile.write('      body: "{{ var_current_hvcp_for_this_cluster|combine({\'addHostRequests\':tmpArray},recursive=True) }}"\n')
+			outfile.write('      status_code: 202\n')
+			outfile.write('    no_log: True\n')
+			outfile.write('    register: var_return\n')
+			outfile.write('\n')
+			
+			"""
+			outfile.write('  - pause:\n')
+			outfile.write('      seconds: 5\n')
+			
+			outfile.write('  - debug: var=var_return\n')
+			outfile.write('#get Task info\n')
+			outfile.write('  - name: get Taskinfo for '+cluster+'\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "1000"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: "{{ var_return[\'location\'] }}"\n')
+			outfile.write('      method: GET\n')
+			outfile.write('      body_format: json\n')
+			outfile.write('      status_code: 200\n')
+			outfile.write('    no_log: False\n')
+			outfile.write('    register: var_return\n')
+			outfile.write('  - debug: var=var_return\n')
+			"""
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
 		#END
 		outfile.close()		
 		
@@ -2583,6 +2857,7 @@ def main():
 	findSynergyNimbles()
 	findHypervisor()
 	findVariablesMgmtNet()
+	findHostsPerCluster()
 	writeConfigs()
 	writeRenameEnclosures("105","renameenclosures") #ehemals 19
 	writeRenameServerHardwareTypes("110","renameserverhardwaretypes") #ehemals 16
