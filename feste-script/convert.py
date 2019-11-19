@@ -2417,33 +2417,36 @@ def writeCreateVolumes(nr,filenamepart):
 		outfile.write('    - set_fact: performance_policy="{{ storage_volume_templates.0.properties.performancePolicy.default }}"\n')
 		outfile.write('\n')
 		
-		storageVolumenames = variablesSynergyNimbleAll[frame["letter"]]["variables"]["storage_volume_names"].split(",")
-		for storagevolumename in storageVolumenames:
-			outfile.write('    - name: Create Volume '+storagevolumename+' based on a Storage Volume Template\n')
-			outfile.write('      oneview_volume:\n')
-			outfile.write('        config: "{{ config }}"\n')
-			outfile.write('        state: present\n')
-			outfile.write('        data:\n')
-			outfile.write('          properties:\n')
-			outfile.write('            name: "'+storagevolumename+'"\n')
-			outfile.write('            description: ""\n')
-			outfile.write('            storagePool: "{{ storage_pool_uri }}"\n')
-			outfile.write('            size: 8796093022208\n')
-			outfile.write('            provisioningType: Thin\n')
-			outfile.write('            isShareable: true\n')
-			outfile.write('            templateVersion: "1.0"\n')
-			outfile.write('            isDeduplicated: true\n')
-			outfile.write('            performancePolicy: "{{ performance_policy }}"\n')
-			outfile.write('            folder:\n')
-			outfile.write('            volumeSet:\n')
-			outfile.write('            isEncrypted: false\n')
-			outfile.write('            isPinned: false\n')
-			outfile.write('            iopsLimit:\n')
-			outfile.write('            dataTransferLimit:\n')
-			outfile.write('          templateUri: "{{ storage_volume_template_uri }}"\n')
-			outfile.write('          isPermanent: true\n')
-			outfile.write('          initialScopeUris: \n')
-			outfile.write('\n')
+		for cluster in variablesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+			for i in range(1,3):
+				storagevolumename = cluster+"-"+str(i).zfill(4)
+				outfile.write('    - name: Create Volume '+storagevolumename+' based on a Storage Volume Template\n')
+				outfile.write('      oneview_volume:\n')
+				outfile.write('        config: "{{ config }}"\n')
+				outfile.write('        state: present\n')
+				outfile.write('        data:\n')
+				outfile.write('          properties:\n')
+				outfile.write('            name: "'+storagevolumename+'"\n')
+				outfile.write('            description: ""\n')
+				outfile.write('            storagePool: "{{ storage_pool_uri }}"\n')
+				outfile.write('            size: 8796093022208\n')
+				outfile.write('            provisioningType: Thin\n')
+				outfile.write('            isShareable: true\n')
+				outfile.write('            templateVersion: "1.0"\n')
+				outfile.write('            isDeduplicated: true\n')
+				outfile.write('            performancePolicy: "{{ performance_policy }}"\n')
+				outfile.write('            folder:\n')
+				outfile.write('            volumeSet:\n')
+				outfile.write('            isEncrypted: false\n')
+				outfile.write('            isPinned: false\n')
+				outfile.write('            iopsLimit:\n')
+				outfile.write('            dataTransferLimit:\n')
+				outfile.write('          templateUri: "{{ storage_volume_template_uri }}"\n')
+				outfile.write('          isPermanent: true\n')
+				outfile.write('          initialScopeUris: \n')
+				outfile.write('\n')
 		#END
 		outfile.close()
 		
@@ -2458,6 +2461,7 @@ def main():
 	findSynergyNimbles()
 	findHypervisor()
 	writeConfigs()
+	"""
 	writeTimelocale("01","ntp")
 	writeAddresspoolsubnet("02","subnetrange")
 	writeAddHypervisorManager("03","addhypervisormanager")
@@ -2475,9 +2479,10 @@ def main():
 	writeCreatedeploymentplan("15","createdeploymentplan")
 	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
 	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
-	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile") #todo implement
+	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile")
 	writeRenameEnclosures("19","renameenclosures")
 	writeCreateVolumeTemplate("20","createvolumetemplate")
+	"""
 	writeCreateVolumes("21","createvolumes")
 	#22	Add Volumes to Hypervisor Cluster profile
 	#23	Add Hypervisors TO HVCP
