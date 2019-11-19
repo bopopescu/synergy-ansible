@@ -384,7 +384,7 @@ def writeConfigs():
 		outfile.write("}"+"\n")
 		outfile.close()
 
-def writeFileheader(outfile,configFileName):
+def writeFileheader(outfile,configFileName,writeConfigPart=True):
 	filename = os.path.basename(outfile.name)
 	print("now: "+filename)
 	outfile.write("###\n")
@@ -399,8 +399,9 @@ def writeFileheader(outfile,configFileName):
 	outfile.write("###\n")
 	outfile.write("---\n")
 	outfile.write("- hosts: localhost\n")
-	outfile.write("  vars:\n")
-	outfile.write('    config: "{{ playbook_dir }}/'+configFileName+'"\n')
+	if(writeConfigPart):
+		outfile.write("  vars:\n")
+		outfile.write('    config: "{{ playbook_dir }}/'+configFileName+'"\n')
 	outfile.write("  tasks:\n")
 	outfile.write("\n")
 		
@@ -424,15 +425,27 @@ def writeFilepartRESTAPILogin(outfile,host,username,password):
 	outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
 	outfile.write('\n')
 	
-def writeFilepartGetImageStreamerIp(outfile):
+def writeFilepartGetImageStreamerIp(outfile,configpath):
 	outfile.write('    - name: Gather facts about all OS Deployment Servers\n')
 	outfile.write('      oneview_os_deployment_server_facts:\n')
-	outfile.write('        config: "{{ config }}"\n')
+	outfile.write('        config: "{{ playbook_dir }}/'+configpath+'"\n')
 	outfile.write('    - set_fact:\n')
 	outfile.write('        var_image_streamer_ip="{{ os_deployment_servers[0].primaryIPV4 }}"\n')
 	outfile.write('\n')
 
 
+#ehemals #12
+def writeFilepartGetConfig(outfile,configpath):		
+	outfile.write('    - name: load var from file\n')
+	outfile.write('      include_vars:\n')
+	outfile.write('        file: "{{ playbook_dir }}/'+configpath+'"\n')
+	outfile.write('        name: var_imported_config\n')
+
+def writeFilepartConfigvariablesInline(outfile,spaces):	
+	outfile.write(spaces+'hostname: "{{ var_imported_config[\'ip\'] }}"\n')
+	outfile.write(spaces+'username: "{{ var_imported_config[\'credentials\'][\'userName\'] }}"\n')
+	outfile.write(spaces+'password: "{{ var_imported_config[\'credentials\'][\'password\'] }}"\n')
+	outfile.write(spaces+'api_version: "{{ var_imported_config[\'api_version\'] }}"\n')
 
 ############################################################################
 ############## Create Playbooks functions ##################################
@@ -1343,52 +1356,23 @@ def writeAddFirmwareBundle(nr,filenamepart):
 		outfile.write('\n')
 		#END
 		outfile.close()
-		
-
-#ehemals #12
-"""
-def writeSetImagestreameripInConfig(nr,filenamepart):		
-	for frame in variablesAll:
-		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
-		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		outfile.write('    - name: Gather facts about all OS Deployment Servers\n')
-		outfile.write('      oneview_os_deployment_server_facts:\n')
-		outfile.write('        config: "{{ config }}"\n')
-		outfile.write('\n')
-		outfile.write('    - set_fact:\n')
-		outfile.write('        var_osds_ip="{{ os_deployment_servers[0].primaryIPV4 }}"\n')
-		outfile.write('\n')
-		outfile.write('    - name: load var from file\n')
-		outfile.write('      include_vars:\n')
-		outfile.write('        file: "{{ playbook_dir }}/'+config_prefx+frame["letter"]+config_sufix+'"\n')
-		outfile.write('        name: imported_var\n')
-		outfile.write('\n')
-		outfile.write('    - name: append more key/values\n')
-		outfile.write('      set_fact:\n')
-		outfile.write('        imported_var: "{{ imported_var | default([]) | combine({ \'image_streamer_ip\': var_osds_ip }) }}"\n')
-		outfile.write('\n')
-		outfile.write('    - name: write var to file\n')
-		outfile.write('      copy:\n')
-		outfile.write('        content: "{{ imported_var | to_nice_json }}"\n')
-		outfile.write('        dest: "{{ playbook_dir }}/'+config_prefx+frame["letter"]+config_sufix+'"\n')
-		outfile.write('\n')
-		outfile.close()
-"""
 
 #13
-def writeUploadAndExtractIsArtifact(nr,filenamepart):		
+def writeUploadAndExtractIsArtifact(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		writeFilepartGetImageStreamerIp(outfile)
-
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix,False)
+		writeFilepartGetImageStreamerIp(outfile,config_prefx+frame["letter"]+config_sufix)
+		writeFilepartGetConfig(outfile,config_prefx+frame["letter"]+config_sufix)
+		
 		#BEGIN
 		outfile.write('\n')
 		outfile.write('    - name: Upload an Artifact Bundle\n')
 		outfile.write('      image_streamer_artifact_bundle:\n')
-		outfile.write('        config: "{{ config }}"\n')
+		#outfile.write('        config: "{{ config }}"\n')
+		writeFilepartConfigvariablesInline(outfile,"        ")
+		outfile.write('        image_streamer_hostname: "{{ var_image_streamer_ip }}"\n')
 		outfile.write('        state: present\n')
 		outfile.write('        data:\n')
 		outfile.write('          localArtifactBundleFilePath: "{{ playbook_dir }}/files/'+frame["variables"]["artifact_bundle"]+'"\n')
@@ -1396,7 +1380,9 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		outfile.write('\n')
 		outfile.write('    - name: Extract an Artifact Bundle\n')
 		outfile.write('      image_streamer_artifact_bundle:\n')
-		outfile.write('        config: "{{ config }}"\n')
+		#outfile.write('        config: "{{ config }}"\n')
+		writeFilepartConfigvariablesInline(outfile,"        ")
+		outfile.write('        image_streamer_hostname: "{{ var_image_streamer_ip }}"\n')
 		outfile.write('        state: extracted\n')
 		outfile.write('        data:\n')
 		outfile.write('          name: "'+frame["variables"]["artifact_bundle"].replace(".zip","")+'"\n')
@@ -1410,13 +1396,16 @@ def writeUploadGI(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		writeFilepartGetImageStreamerIp(outfile)
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix,False)
+		writeFilepartGetImageStreamerIp(outfile,config_prefx+frame["letter"]+config_sufix)
+		writeFilepartGetConfig(outfile,config_prefx+frame["letter"]+config_sufix)
 		
 		#BEGIN
 		outfile.write('    - name: Upload a Golden Image\n')
 		outfile.write('      image_streamer_golden_image:\n')
-		outfile.write('        config: "{{ config }}"\n')
+		#outfile.write('        config: "{{ config }}"\n')
+		writeFilepartConfigvariablesInline(outfile,"        ")
+		outfile.write('        image_streamer_hostname: "{{ var_image_streamer_ip }}"\n')
 		outfile.write('        state: present\n')
 		outfile.write('        data:\n')
 		outfile.write('          name: "'+frame["variables"]["golden_image"].replace(".zip","")+'"\n')
@@ -1432,19 +1421,23 @@ def writeCreatedeploymentplan(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
-		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-		writeFilepartGetImageStreamerIp(outfile)
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix,False)
+		writeFilepartGetImageStreamerIp(outfile,config_prefx+frame["letter"]+config_sufix)
+		writeFilepartGetConfig(outfile,config_prefx+frame["letter"]+config_sufix)
 		
 		#BEGIN
 		outfile.write('    - name: Retrieve GoldenImage URI\n')
 		outfile.write('      image_streamer_golden_image_facts:\n')
-		outfile.write('        config: "{{ config }}"\n')
+		#outfile.write('        config: "{{ config }}"\n')
+		writeFilepartConfigvariablesInline(outfile,"        ")
+		outfile.write('        image_streamer_hostname: "{{ var_image_streamer_ip }}"\n')
 		outfile.write('        name: "'+frame["variables"]["golden_image"].replace(".zip","")+'"\n')
 		outfile.write('      register: result\n')
 		outfile.write('\n')
 		outfile.write('    - name: Create a Deployment Plan\n')
 		outfile.write('      image_streamer_deployment_plan:\n')
-		outfile.write('        config: "{{ config }}"\n')
+		#outfile.write('        config: "{{ config }}"\n')
+		writeFilepartConfigvariablesInline(outfile,"        ")
 		outfile.write('        state: present\n')
 		outfile.write('        data:\n')
 		outfile.write('          description: "Release Build mit SUT und NCM"\n')
