@@ -451,7 +451,7 @@ def writeFilepartConfigvariablesInline(outfile,spaces):
 ############## Create Playbooks functions ##################################
 ############################################################################
 
-#01
+#210 ehemals #01
 def writeTimelocale(nr,name):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+name+filename_sufix
@@ -470,7 +470,7 @@ def writeTimelocale(nr,name):
 		outfile.write("\n")
 		outfile.close()		
 
-#02
+#280 ehemals #02
 def writeAddresspoolsubnet(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -503,7 +503,7 @@ def writeAddresspoolsubnet(nr,filenamepart):
 				variablesOneSubnet[variablesHead[col]] = val
 		writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet)
 		
-#02 helper
+#280 ehemals #02 helper
 def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):	
 	if(not "zone" in variablesOneSubnet):
 		print("variablesOneSubnet missing zone!")
@@ -583,7 +583,7 @@ def writeAddresspoolsubnetOne(nr,filenamepart,variablesOneSubnet):
 
 
 
-#03
+#360 ehemals #03
 def writeAddHypervisorManager(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -643,7 +643,7 @@ def writeAddHypervisorManager(nr,filenamepart):
 		
 
 
-#04
+#290 ehemals #04
 def writeCreatenetwork(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -680,7 +680,7 @@ def writeCreatenetwork(nr,filenamepart):
 				variablesOneNet[variablesHead[col]] = val
 		writeCreatenetworkOne(nr,filenamepart,variablesOneNet)
 
-#04 helper
+#290 ehemals #04 helper
 def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):	
 	if(not "zone" in variablesOneNet):
 		print("variablesOneNet missing zone!")
@@ -737,7 +737,7 @@ def writeCreatenetworkOne(nr,filenamepart,variablesOneNet):
 		
 		outfile.close()
 
-#05
+#310 ehemals #05
 def writeOSdeploymentServer(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -761,7 +761,7 @@ def writeOSdeploymentServer(nr,filenamepart):
 		outfile.close()
 
 
-#06
+#320 ehemals #06
 def writeNetworkset(nr,filenamepart):
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
@@ -824,7 +824,7 @@ def writeNetworkset(nr,filenamepart):
 		outfile.close()
 
 
-#07
+#340 ehemals #07
 def writeLogicalInterconnectGroup(nr,filenamepart):
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
@@ -1090,7 +1090,7 @@ def writeLogicalInterconnectGroup(nr,filenamepart):
 
 
 
-#08
+#342 ehemals #08
 def writeEnclosureGroup(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1181,7 +1181,7 @@ def writeEnclosureGroup(nr,filenamepart):
 		outfile.close()
 	   
 	   
-#09
+#244 ehemals #09
 def writeLogicalEnclosure(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1235,7 +1235,7 @@ def writeLogicalEnclosure(nr,filenamepart):
 		outfile.write('  - name: Gather facts about Enclosure Groups'+"\n")
 		outfile.write('    oneview_enclosure_group_facts:'+"\n")
 		outfile.write('      config: "{{ config }}"'+"\n")
-		outfile.write('      name: "Nublar_EG_3e"'+"\n") #CODE gleicher Name wie in enclosuregroup
+		outfile.write('      name: "'+frame["variables"]["enclosure_group_name"]+'"'+"\n") #CODE gleicher Name wie in enclosuregroup
 		outfile.write('    delegate_to: localhost'+"\n")
 		outfile.write('  - set_fact: var_enclosure_group_uri="{{ enclosure_groups.uri }}"'+"\n")
 		outfile.write("\n")
@@ -1258,7 +1258,7 @@ def writeLogicalEnclosure(nr,filenamepart):
 		
 
 	
-#10
+#330 ehemals #10
 def writeStoragesystem(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1338,7 +1338,7 @@ def writeStoragesystem(nr,filenamepart):
 		
 		
 		
-#11
+#270 ehemals #11
 def writeAddFirmwareBundle(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1357,7 +1357,7 @@ def writeAddFirmwareBundle(nr,filenamepart):
 		#END
 		outfile.close()
 
-#13
+#350 ehemals #13
 def writeUploadAndExtractIsArtifact(nr,filenamepart):
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1391,7 +1391,7 @@ def writeUploadAndExtractIsArtifact(nr,filenamepart):
 		#END
 		outfile.close()
 		
-#14
+#352 ehemals #14
 def writeUploadGI(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1416,7 +1416,7 @@ def writeUploadGI(nr,filenamepart):
 		#END
 		outfile.close()	
 
-#15
+#354 ehemals #15
 def writeCreatedeploymentplan(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1501,7 +1501,7 @@ def writeCreatedeploymentplan(nr,filenamepart):
 
 
 
-#16
+#110 ehemals #16
 def writeRenameServerHardwareTypes(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1569,7 +1569,7 @@ def writeRenameServerHardwareTypes(nr,filenamepart):
 		
 		
 	
-#17
+#346 ehemals #17
 def writeCreateServerProfileTemplate(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1950,7 +1950,7 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 		#END
 		
 
-#18
+#362 ehemals #18
 def writeAddHypervisorClusterProfile(nr,filenamepart):
 
 	#get MGMT Net Variables
@@ -2152,7 +2152,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.close()
 
 
-#19
+#105 ehemals #19
 def writeRenameEnclosures(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -2211,7 +2211,7 @@ def writeRenameEnclosures(nr,filenamepart):
 		
 		
 		
-#20
+#334 ehemals #20
 def writeCreateVolumeTemplate(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -2405,7 +2405,7 @@ def writeCreateVolumeTemplate(nr,filenamepart):
 		#END
 		outfile.close()
 		
-#21
+#336 ehemals #21
 def writeCreateVolumes(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -2486,7 +2486,6 @@ def main():
 	writeCreatedeploymentplan("354","createdeploymentplan") #ehemals 15
 	writeAddHypervisorManager("360","addhypervisormanager") #ehemals 3
 	writeAddHypervisorClusterProfile("362","addhypervisorclusterprofile") #ehemals 18
-	#writeSetImagestreameripInConfig("12","setimagestreameripinconfig") #ehemals 12
 	#364	Add Volumes to Hypervisor Cluster profile #ehemals 22
 	#366	Add Hypervisors TO HVCP #ehemals 23
 	
