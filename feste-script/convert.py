@@ -379,7 +379,7 @@ def writeConfigs():
 		outfile.write("        \"userName\": \"Administrator\","+"\n")
 		outfile.write("        \"password\": \""+frame["variables"]["administrator_passwort"]+"\""+"\n")
 		outfile.write("    },"+"\n")
-		outfile.write("    \"image_streamer_ip\": \"\","+"\n") #todo, bleibt erstmal leer
+		outfile.write("    \"image_streamer_ip\": \"\","+"\n") #bleibt leer. Folgene Tasks lesen die IP live aus
 		outfile.write('    "api_version": "'+restApiVersion+'"\n')
 		outfile.write("}"+"\n")
 		outfile.close()
@@ -421,8 +421,15 @@ def writeFilepartRESTAPILogin(outfile,host,username,password):
 	outfile.write('        userName: "'+username+'"\n')
 	outfile.write('        loginMsgAck: "true"\n')
 	outfile.write('    register: var_this\n')
-	outfile.write('\n')
 	outfile.write('  - set_fact: var_token=\'{{ var_this["json"]["sessionID"] }}\'\n')
+	outfile.write('\n')
+	
+def writeFilepartGetImageStreamerIp(outfile):
+	outfile.write('    - name: Gather facts about all OS Deployment Servers\n')
+	outfile.write('      oneview_os_deployment_server_facts:\n')
+	outfile.write('        config: "{{ config }}"\n')
+	outfile.write('    - set_fact:\n')
+	outfile.write('        var_image_streamer_ip="{{ os_deployment_servers[0].primaryIPV4 }}"\n')
 	outfile.write('\n')
 
 
@@ -1338,7 +1345,8 @@ def writeAddFirmwareBundle(nr,filenamepart):
 		outfile.close()
 		
 
-#12
+#ehemals #12
+"""
 def writeSetImagestreameripInConfig(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
@@ -1366,13 +1374,15 @@ def writeSetImagestreameripInConfig(nr,filenamepart):
 		outfile.write('        dest: "{{ playbook_dir }}/'+config_prefx+frame["letter"]+config_sufix+'"\n')
 		outfile.write('\n')
 		outfile.close()
-		
+"""
+
 #13
 def writeUploadAndExtractIsArtifact(nr,filenamepart):		
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		writeFilepartGetImageStreamerIp(outfile)
 
 		#BEGIN
 		outfile.write('\n')
@@ -1401,7 +1411,8 @@ def writeUploadGI(nr,filenamepart):
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-
+		writeFilepartGetImageStreamerIp(outfile)
+		
 		#BEGIN
 		outfile.write('    - name: Upload a Golden Image\n')
 		outfile.write('      image_streamer_golden_image:\n')
@@ -1422,7 +1433,8 @@ def writeCreatedeploymentplan(nr,filenamepart):
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
-
+		writeFilepartGetImageStreamerIp(outfile)
+		
 		#BEGIN
 		outfile.write('    - name: Retrieve GoldenImage URI\n')
 		outfile.write('      image_streamer_golden_image_facts:\n')
@@ -2461,31 +2473,29 @@ def main():
 	findSynergyNimbles()
 	findHypervisor()
 	writeConfigs()
-	"""
-	writeTimelocale("01","ntp")
-	writeAddresspoolsubnet("02","subnetrange")
-	writeAddHypervisorManager("03","addhypervisormanager")
-	writeCreatenetwork("04","ethernetnetworkwithassociatedsubnet")
-	writeOSdeploymentServer("05","osds")
-	writeNetworkset("06","networkset")
-	writeLogicalInterconnectGroup("07","logicalinterconnectgroup")
-	writeEnclosureGroup("08","enclosuregroup")
-	writeLogicalEnclosure("09","logicalenclosure")
-	writeStoragesystem("10","storagesystem")
-	writeAddFirmwareBundle("11","addfirmwarebundle")
-	writeSetImagestreameripInConfig("12","setimagestreameripinconfig")
-	writeUploadAndExtractIsArtifact("13","uploadAndExtractIsArtifact")
-	writeUploadGI("14","uploadGI")
-	writeCreatedeploymentplan("15","createdeploymentplan")
-	writeRenameServerHardwareTypes("16","renameserverhardwaretypes")
-	writeCreateServerProfileTemplate("17","createserverprofiletemplate")
-	writeAddHypervisorClusterProfile("18","addhypervisorclusterprofile")
-	writeRenameEnclosures("19","renameenclosures")
-	writeCreateVolumeTemplate("20","createvolumetemplate")
-	"""
-	writeCreateVolumes("21","createvolumes")
-	#22	Add Volumes to Hypervisor Cluster profile
-	#23	Add Hypervisors TO HVCP
+	writeRenameEnclosures("105","renameenclosures") #ehemals 19
+	writeRenameServerHardwareTypes("110","renameserverhardwaretypes") #ehemals 16
+	writeTimelocale("210","ntp") #ehemals 1
+	writeAddFirmwareBundle("270","addfirmwarebundle") #ehemals 11
+	writeAddresspoolsubnet("280","subnetrange") #ehemals 2
+	writeCreatenetwork("290","ethernetnetworkwithassociatedsubnet") #ehemals 4
+	writeOSdeploymentServer("310","osds") #ehemals 5
+	writeNetworkset("320","networkset") #ehemals 6
+	writeStoragesystem("330","storagesystem") #ehemals 10
+	writeCreateVolumeTemplate("334","createvolumetemplate") #ehemals 20
+	writeCreateVolumes("336","createvolumes") #ehemals 21
+	writeLogicalInterconnectGroup("340","logicalinterconnectgroup") #ehemals 7
+	writeEnclosureGroup("342","enclosuregroup") #ehemals 8
+	writeLogicalEnclosure("344","logicalenclosure") #ehemals 9
+	writeCreateServerProfileTemplate("346","createserverprofiletemplate") #ehemals 17
+	writeUploadAndExtractIsArtifact("350","uploadAndExtractIsArtifact") #ehemals 13
+	writeUploadGI("352","uploadGI") #ehemals 14
+	writeCreatedeploymentplan("354","createdeploymentplan") #ehemals 15
+	writeAddHypervisorManager("360","addhypervisormanager") #ehemals 3
+	writeAddHypervisorClusterProfile("362","addhypervisorclusterprofile") #ehemals 18
+	#writeSetImagestreameripInConfig("12","setimagestreameripinconfig") #ehemals 12
+	#364	Add Volumes to Hypervisor Cluster profile #ehemals 22
+	#366	Add Hypervisors TO HVCP #ehemals 23
 	
 #start
 main()
