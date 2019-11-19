@@ -48,23 +48,21 @@
       status_code: 200
     register: var_hvcp
   - set_fact: hvcp={{[]}}
-  - set_fact: hvcp="{{ hvcp + [item['name'], item['uri']] }}"
+  - set_fact: hvcp="{{ hvcp +[{"name":item['name'], "uri":item['uri']}] }}"
     loop: "{{ var_hvcp.json.members | flatten }}"
-    no_log: True
+  - debug: var=hvcp
 
-
-  - name: Retrieve Volumes for all HVCP
+    
+  - name: Retrieve Volumes for HVCP
     oneview_volume_facts:
       config: "{{ config }}"
+
   - set_fact: hvcp_volumes={{[]}}
   - set_fact: hvcp_volumes="{{ hvcp_volumes + [item['name'],item['uri']]}} "
-    when: item['name'] is search("A-PROD-")
+    when: item['name'] is search("A-PROD-") #CODE über alle Cluster loopen
     loop:
       "{{ storage_volumes | flatten }}"
 
-  - debug: var=hvcp_volumes
-
-  - pause:
 
   - name: Attach Volumes to Cluster
     uri:
@@ -73,19 +71,20 @@
         Auth: "{{ var_token }}"
         X-Api-Version: "1000"
         Content-Type: application/json
-      url: 'https://a-dcb-syn0001.ad.nublar.de{{ hvcp_uri }}'
+      url: 'https://a-dcb-syn0001.ad.nublar.de{{ hvcp['uri'] }}'
       method: PUT
       body_format: json
       body:
         type: 'HypervisorClusterProfileV3'
         name: "{{ hvcp_name }}"
         hypervisorType: 'Vmware'
-        sharedStorageVolumes:
-        - storageVolumeUri: "{{ hvcp_volumes.0.uri }}"
+        sharedStorageVolumes:                       #CODE Anfang
+        - storageVolumeUri: "{{ item['uri'] }}"
           hypervisorClusterVolume:
             action: ADD
-            name: "{{ hvcp_volumes.0.name }}"
-          volumeFileSystemType: VMFS
+            name: "{{ item['name'] }}"
+          volumeFileSystemType: VMFS                #CODE Ende
       status_code: 202
+    with_items: storage_volumes
     register: var_return
 
