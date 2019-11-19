@@ -46,6 +46,7 @@ variablesHypervisorAll = {}
 variablesClustersAll = []
 variableHVCPserverpassword = ""
 variableHVCPmgmtNet = ""
+variablesMgmtNet = {}
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -264,9 +265,6 @@ def findSynergyNimbles():
 			variables[name] = data
 		nimble["variables"] = variables
 
-
-
-
 def findHypervisor():
 	global variablesHypervisorAll,variablesClustersAll,variableHVCPserverpassword,variableHVCPmgmtNet
 	#open workbook and worksheet
@@ -364,6 +362,42 @@ def findHypervisor():
 		variableHVCPmgmtNet = name
 		break
 		
+		
+def findVariablesMgmtNet():
+	global variablesMgmtNet
+	#get MGMT Net Variables
+	#open workbook and worksheet
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabsubnets)
+	
+	variablesHead = []
+	for col in range(worksheet.ncols):
+		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
+		variablesHead.append(name)
+	
+	for row in range(1,worksheet.nrows):
+		variablesOneNet = {}
+		for col in range(worksheet.ncols):
+			val = worksheet.cell_value(row,col)
+			
+			if(isinstance(val,float)):
+				val = str(int(val))
+			
+			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
+				val = ""
+			
+			if(val.find("#TODO") != -1):
+				pos = val.find("#TODO")
+				val = val[:pos-1]
+			
+			if(val!=""):
+				variablesOneNet[variablesHead[col]] = val
+		
+		if(variablesOneNet["name"]==variableHVCPmgmtNet):
+			variablesMgmtNet = variablesOneNet
+			
+
+
 ############################################################################
 ############## Write Config and Fileheaders functions ######################
 ############################################################################
@@ -1952,39 +1986,6 @@ def writeCreateServerProfileTemplate(nr,filenamepart):
 
 #362 ehemals #18
 def writeAddHypervisorClusterProfile(nr,filenamepart):
-
-	#get MGMT Net Variables
-	#open workbook and worksheet
-	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabsubnets)
-	
-	variablesHead = []
-	variablesMgmtNet = {}
-	for col in range(worksheet.ncols):
-		name = convertToAnsibleVariableName(worksheet.cell_value(0,col))
-		variablesHead.append(name)
-	
-	for row in range(1,worksheet.nrows):
-		variablesOneNet = {}
-		for col in range(worksheet.ncols):
-			val = worksheet.cell_value(row,col)
-			
-			if(isinstance(val,float)):
-				val = str(int(val))
-			
-			if(val=="#TODO" or val=="n/a" or val.startswith("#TODO")):
-				val = ""
-			
-			if(val.find("#TODO") != -1):
-				pos = val.find("#TODO")
-				val = val[:pos-1]
-			
-			if(val!=""):
-				variablesOneNet[variablesHead[col]] = val
-		
-		if(variablesOneNet["name"]==variableHVCPmgmtNet):
-			variablesMgmtNet = variablesOneNet
-
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
 		outfile = open(filePath,'w')
@@ -2404,7 +2405,7 @@ def writeCreateVolumeTemplate(nr,filenamepart):
 		outfile.write('\n')
 		#END
 		outfile.close()
-		
+
 #336 ehemals #21
 def writeCreateVolumes(nr,filenamepart):		
 	for frame in variablesAll:
@@ -2456,6 +2457,101 @@ def writeCreateVolumes(nr,filenamepart):
 		outfile.close()
 		
 		
+
+#364 ehemals #22
+def writeAddVolumesToHypervisorClusterProfile(nr,filenamepart):		
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
+		
+		#BEGIN
+		outfile.write('  - name: Retrieve HVCP as name:uri dict\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "1000"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://'+hostname+'/rest/hypervisor-cluster-profiles\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_hvcp\n')
+		outfile.write('  - set_fact: hvcp={{{}}}\n')
+		outfile.write('  - set_fact: hvcp="{{ hvcp | combine({item[\'name\']:item[\'uri\']}) }}"\n')
+		outfile.write('    loop: "{{ var_hvcp.json.members }}"\n')
+		outfile.write('  - debug: var=hvcp\n')
+		outfile.write('\n')
+		outfile.write('  - name: Retrieve Volumes for HVCP (registers storage_volumes)\n')
+		outfile.write('    oneview_volume_facts:\n')
+		outfile.write('      config: "{{ config }}"\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+		outfile.write('\n')
+
+		for cluster in variablesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+
+			outfile.write('  - name: get HVCP for '+cluster+'\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "1000"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: "https://'+hostname+'{{ hvcp[\''+cluster+'\'] }}"\n')
+			outfile.write('      method: GET\n')
+			outfile.write('      status_code: 200\n')
+			outfile.write('    register: result2\n')
+			outfile.write('\n')
+			outfile.write('  - set_fact: result2="{{ result2["json"] }}"\n')
+			outfile.write('  - set_fact: result2="{{ result2|combine({\'eTag\':None},recursive=True) }}"\n')
+			outfile.write('  - debug: var=result2\n')
+			outfile.write('\n')
+			outfile.write('  - set_fact: tmpArray={{[]}}\n')
+			outfile.write('  - set_fact: tmpArray="{{ tmpArray + [{\'storageVolumeUri\':item[\'uri\'],\'volumeFileSystemType\':\'VMFS\'}] }}"\n')
+			outfile.write('    when: item[\'name\'] is search("'+cluster+'-")\n')
+			outfile.write('    loop: "{{ storage_volumes }}"\n')
+			outfile.write('  - debug: var=tmpArray\n')
+			outfile.write('\n')
+			outfile.write('  - name: Attach Volumes to Cluster '+cluster+'\n')
+			outfile.write('    uri:\n')
+			outfile.write('      validate_certs: yes\n')
+			outfile.write('      headers:\n')
+			outfile.write('        Auth: "{{ var_token }}"\n')
+			outfile.write('        X-Api-Version: "1000"\n')
+			outfile.write('        Content-Type: application/json\n')
+			outfile.write('      url: "https://'+hostname+'{{ hvcp[\''+cluster+'\'] }}"\n')
+			outfile.write('      method: PUT\n')
+			outfile.write('      body_format: json\n')
+			outfile.write('      body: "{{ result2|combine({\'sharedStorageVolumes\':tmpArray},recursive=True) }}"\n')
+			outfile.write('      status_code: 202\n')
+			outfile.write('    register: var_return\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
+		#END
+		outfile.close()
+		
+		
+		
+		
+		
 ############################################################################
 ############## Main Function ###############################################
 ############################################################################
@@ -2465,6 +2561,7 @@ def main():
 	findNimbles()
 	findSynergyNimbles()
 	findHypervisor()
+	findVariablesMgmtNet()
 	writeConfigs()
 	writeRenameEnclosures("105","renameenclosures") #ehemals 19
 	writeRenameServerHardwareTypes("110","renameserverhardwaretypes") #ehemals 16
@@ -2486,7 +2583,7 @@ def main():
 	writeCreatedeploymentplan("354","createdeploymentplan") #ehemals 15
 	writeAddHypervisorManager("360","addhypervisormanager") #ehemals 3
 	writeAddHypervisorClusterProfile("362","addhypervisorclusterprofile") #ehemals 18
-	#364	Add Volumes to Hypervisor Cluster profile #ehemals 22
+	writeAddVolumesToHypervisorClusterProfile("364","AddVolumesToHVCP") #364	Add Volumes to Hypervisor Cluster profile #ehemals 22
 	#366	Add Hypervisors TO HVCP #ehemals 23
 	
 #start
