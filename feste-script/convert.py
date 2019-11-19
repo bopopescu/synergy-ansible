@@ -2086,7 +2086,7 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('    with_items: \'{{ var_distributedswitches_names_raw["results"][0]["json"]["networkUris"] }}\'\n')
 		outfile.write('    no_log: True\n')
 		outfile.write('\n')
-		outfile.write('  - set_fact: var_switchesrequest="{{[] | switchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_uris,var_standardswitches_names_raw,var_distributedswitches_uris,var_distributedswitches_names_raw,"'+frame["letter"]+'",server_profile_templates[0]["connectionSettings"]["connections"],var_distributedswitches_networks_raw["results"])}}"\n')
+		outfile.write('  - set_fact: var_switchesrequest="{{[] | switchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_names_raw,var_distributedswitches_names_raw,"'+frame["letter"]+'",var_distributedswitches_networks_raw["results"])}}"\n')
 		#outfile.write('  - debug: var=var_switchesrequest\n')
 		outfile.write('\n')	
 
@@ -2560,8 +2560,18 @@ def writeAddVolumesToHypervisorClusterProfile(nr,filenamepart):
 		outfile.close()
 		
 		
+def writeAddHypervisorsToHVCP(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
 		
+		#BEGIN
+		outfile.write('\n')
+		#TODO #CODE
 		
+		#END
+		outfile.close()		
 		
 ############################################################################
 ############## Main Function ###############################################
@@ -2594,8 +2604,8 @@ def main():
 	writeCreatedeploymentplan("354","createdeploymentplan") #ehemals 15
 	writeAddHypervisorManager("360","addhypervisormanager") #ehemals 3
 	writeAddHypervisorClusterProfile("362","addhypervisorclusterprofile") #ehemals 18
-	writeAddVolumesToHypervisorClusterProfile("364","AddVolumesToHVCP") #364	Add Volumes to Hypervisor Cluster profile #ehemals 22
-	#366	Add Hypervisors TO HVCP #ehemals 23
+	writeAddVolumesToHypervisorClusterProfile("364","addvolumeshvcp") #Add Volumes to Hypervisor Cluster profile #ehemals 22
+	writeAddHypervisorsToHVCP("366","addhypervisorshvcp") #Add Hypervisors TO HVCP #ehemals 23
 	
 #start
 main()

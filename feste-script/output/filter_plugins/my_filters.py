@@ -12,15 +12,15 @@ class FilterModule(object):
 				p['expectedNetworkUri'] = network_uri
 				p['mode'] = "Managed"
 		return nimble_json
-		
-	def switchesrequest(self, tmp, eins, uris, zwei, uris2, drei, letter, connections, distributedswitches_networks):
-	
+
+	def switchesrequest(self, tmp, connections, var_standardswitches_names_raw, var_distributedswitches_names_raw, letter, distributedswitches_networks):
+
 		###############
 		###############		Standard
 		###############
 		data = []
 		uniqueNetworkNames = []
-		for e in eins:
+		for e in connections:
 			if("ethernet-networks" in e["networkUri"]):
 				tmp = {}
 				tmp["networkUri"] = e["networkUri"]
@@ -30,7 +30,7 @@ class FilterModule(object):
 				data.append(tmp)
 
 		data2 = {}
-		for z in zwei["results"]:
+		for z in var_standardswitches_names_raw["results"]:
 			tmp = {}
 			z = z["json"]
 			tmp["name"] = z["name"]
@@ -91,10 +91,10 @@ class FilterModule(object):
 
 		###############
 		###############		DISTRIBUTED
-		###############		
+		###############	
 		dataD = []
 		data3 = {}
-		for z in drei["results"]:
+		for z in var_distributedswitches_names_raw["results"]:
 			tmp = {}
 			z = z["json"]
 			tmp["name"] = z["name"]
@@ -102,7 +102,7 @@ class FilterModule(object):
 			tmp["networkUris"] = z["networkUris"]
 			data3[z["name"]]=tmp
 
-		for e in eins:
+		for e in connections:
 			if("network-set" in e["networkUri"]):
 				tmp = {}
 				tmp["networkUri"] = e["networkUri"]
@@ -134,13 +134,13 @@ class FilterModule(object):
 				tmp2["virtualSwitchPorts"] = []
 				tmp2["action"] = "NONE"
 				tmp["virtualSwitchPortGroups"].append(tmp2)
-					
+
 			names = []
 			for d in dataD:
 				if(d["networkUri"] == vars["uri"]):
 					if(not d["name"] in names):
 						names.append(d["name"])
-						
+
 			for c in connections:
 				if(c["name"] in names):
 					tmp2 = {
@@ -151,8 +151,5 @@ class FilterModule(object):
 							"action": "NONE"
 						}
 					tmp["virtualSwitchUplinks"].append(tmp2)
-					
 			ret.append(tmp)
-
 		return json.dumps(ret)
-		
