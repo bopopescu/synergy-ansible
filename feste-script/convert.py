@@ -2798,7 +2798,7 @@ def writeAddHypervisorsToHVCP(nr,filenamepart):
 				
 			outfile.write('\n')
 			outfile.write('#do attach call via REST-API. Body is var_current_hvcp_for_this_cluster combined with addHostRequests which contains our temp Array\n')
-			outfile.write('  - name: Attach Volumes to Cluster '+cluster+'\n')
+			outfile.write('  - name: Add Hypervisor Hosts to Cluster '+cluster+'\n')
 			outfile.write('    uri:\n')
 			outfile.write('      validate_certs: yes\n')
 			outfile.write('      headers:\n')
