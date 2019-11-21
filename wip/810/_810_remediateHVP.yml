@@ -1,0 +1,73 @@
+###
+# created by python script convert.py
+# Felix Sterzelmaier, Concat AG
+# Created: 2019-11-19 18:13:49 CET(+0100)
+# Dependencies: pip install --upgrade pip
+# Dependencies: pip install pyvmomi
+# Run with: ansible-playbook -c local -i localhost, A_366_addhypervisorshvcp.yml
+# Run on: 10.10.5.239/olant-ansible as user olant in path /home/olant/synergy-ansible/feste-script/output
+# Before reading this playbook please read the README.txt and the sourcecode of convert.py first!
+###
+---
+- hosts: localhost
+  vars:
+    config: "{{ playbook_dir }}/A_oneview_config.json"
+  tasks:
+
+  - name: Login to API and retrieve AUTH-Token
+    uri:
+      validate_certs: yes
+      headers:
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/login-sessions
+      method: POST
+      body_format: json
+      body:
+        authLoginDomain: "LOCAL"
+        password: "Concat123"
+        userName: "Administrator"
+        loginMsgAck: "true"
+    register: var_this
+  - set_fact: var_token='{{ var_this["json"]["sessionID"] }}'
+
+
+  - name: Retrieve HVP as name:uri dict
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-host-profiles
+      method: GET
+      status_code: 200
+    register: var_hvp
+  - set_fact: hvp={{[]}}
+  - set_fact: hvp="{{ hvp + [item] }}"
+    when: item.refreshState is match 'NotRefreshing' and item.state is not match 'Configuring' and item.status is not match 'OK'
+    loop: "{{ var_hvp.json.members }}"
+    no_log: False
+
+  - set_fact: hvp2remediate={{[]}}
+  - set_fact: hvp2remediate="{{ hvp2remediate + [ item|combine({'complianceState':'Remediate'},recursive=True) ] }}"
+    loop: "{{ hvp }}"
+    no_log: True
+
+  - name: Remediate HVPs
+    uri:
+      validate_certs: yes
+      headers:
+        Auth: "{{ var_token }}"
+        X-Api-Version: "1000"
+        Content-Type: application/json
+      url: "https://a-dcb-syn0001.ad.nublar.de/{{ item.uri }}"
+      method: PUT
+      status_code: 202
+      body_format: json
+      body: "{{ item }}"
+    loop: "{{ hvp2remediate }}"
+    no_log: True
+
+
+
