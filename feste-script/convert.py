@@ -2916,7 +2916,7 @@ def main():
 	writeAddHypervisorClusterProfile("362","addhypervisorclusterprofile") #ehemals 18
 	writeAddVolumesToHypervisorClusterProfile("364","addvolumeshvcp") #Add Volumes to Hypervisor Cluster profile #ehemals 22
 	writeAddHypervisorsToHVCP("366","addhypervisorshvcp") #Add Hypervisors TO HVCP #ehemals 23
-	writeRemediateHypervisorProfiles("810","writeremediatehypervisorprofiles") #RemediateHypervisorProfiles
+	writeRemediateHypervisorProfiles("810","remediatehypervisorprofiles") #RemediateHypervisorProfiles
 	
 #start
 main()
