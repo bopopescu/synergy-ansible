@@ -2612,10 +2612,7 @@ def writeAddHypervisorsToHVCP(nr,filenamepart):
 		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
 		
 		#BEGIN
-		outfile.write('\n')
-		#cluster mit 2-3 hosts, variabel
-		
-		
+		#gather facts for all clusters
 		outfile.write('  - name: get Server Hardware\n')
 		outfile.write('    uri:\n')
 		outfile.write('      validate_certs: yes\n')
@@ -2687,73 +2684,11 @@ def writeAddHypervisorsToHVCP(nr,filenamepart):
 		outfile.write('\n')
 		outfile.write('\n')
 		
+		#CREATE
+		#foreach cluster in this Zone (A or B)
 		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
 				continue
-			"""
-			outfile.write('#Add Hypervisors To HVCP\n')
-			outfile.write('  - name: Add Hypervisors To HVCP '+cluster+'\n')
-			outfile.write('    uri:\n')
-			outfile.write('      validate_certs: yes\n')
-			outfile.write('      headers:\n')
-			outfile.write('        Auth: "{{ var_token }}"\n')
-			outfile.write('        X-Api-Version: "1000"\n')
-			outfile.write('        Content-Type: application/json\n')
-			outfile.write('      url: "https://'+hostname+'{{ hvcp[\''+cluster+'\'] }}"\n')
-			outfile.write('      method: PUT\n')
-			outfile.write('      body_format: json\n')
-			outfile.write('      body: \n')
-			outfile.write('        type: "HypervisorClusterProfileV3"\n')
-			outfile.write('        name: "Cluster5"\n')
-			outfile.write('        hypervisorType: Vmware\n')
-			outfile.write('        hypervisorManagerUri: "{{ var_hypervisor_manager_uri }}"\n')
-			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
-			outfile.write('        hypervisorHostProfileTemplate:\n')
-			outfile.write('          serverProfileTemplateUri: "{{ var_server_profile_template_uri }}"\n')
-			outfile.write('        mgmtIpSettingsOverride:\n')
-			outfile.write('          netmask: "'+variablesMgmtNet["subnetmask"]+'"\n')
-			outfile.write('          gateway: "'+variablesMgmtNet["gateway"]+'"\n')
-			outfile.write('          dnsDomain: "'+variablesMgmtNet["domain"]+'"\n')
-			outfile.write('          primaryDns: "'+variablesMgmtNet["dnsserver1"]+'"\n')
-			outfile.write('          secondaryDns: "'+variablesMgmtNet["dnsserver2"]+'"\n')
-			outfile.write('        addHostRequests:\n')
-			
-			for clusterHost in variablesClusterHosts:
-				if(clusterHost["cluster"]!=cluster):
-					continue
-					
-				outfile.write('        - serverHardwareUri: "{{ var_serverhardware_name_to_uri[\''+clusterHost["server_hardware"]+'\'] }}"\n')
-				outfile.write('          deploymentCustomArgs:\n')
-				outfile.write('          - argumentName: Hostname\n')
-				outfile.write('            argumentValue: '+clusterHost["hostname"]+'\n')
-				outfile.write('          mgmtIp:\n')
-				outfile.write('            ip: clusterHost["management_ipv4_address"]\n')
-			outfile.write('      status_code: 202\n')
-			outfile.write('    no_log: False\n')
-			outfile.write('    register: var_return\n')
-			
-			outfile.write('  - pause:\n')
-			outfile.write('      seconds: 5\n')
-			
-			outfile.write('  - debug: var=var_return\n')
-			outfile.write('#get Task info\n')
-			outfile.write('  - name: get Taskinfo for '+cluster+'\n')
-			outfile.write('    uri:\n')
-			outfile.write('      validate_certs: yes\n')
-			outfile.write('      headers:\n')
-			outfile.write('        Auth: "{{ var_token }}"\n')
-			outfile.write('        X-Api-Version: "1000"\n')
-			outfile.write('        Content-Type: application/json\n')
-			outfile.write('      url: "{{ var_return[\'location\'] }}"\n')
-			outfile.write('      method: GET\n')
-			outfile.write('      body_format: json\n')
-			outfile.write('      status_code: 200\n')
-			outfile.write('    no_log: False\n')
-			outfile.write('    register: var_return\n')
-			outfile.write('  - debug: var=var_return\n')
-			#outfile.write('  - meta: end_play\n')
-			"""
-
 
 			outfile.write('#get var_current_hvcp_for_this_cluster\n')
 			outfile.write('  - name: get HVCP for '+cluster+'\n')
@@ -2811,39 +2746,59 @@ def writeAddHypervisorsToHVCP(nr,filenamepart):
 			outfile.write('      body: "{{ var_current_hvcp_for_this_cluster|combine({\'addHostRequests\':tmpArray},recursive=True) }}"\n')
 			outfile.write('      status_code: 202\n')
 			outfile.write('    no_log: True\n')
-			outfile.write('    register: var_return\n')
+			outfile.write('    register: var_return_'+convertToAnsibleVariableName(cluster)+'\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
+			outfile.write('\n')
 			outfile.write('\n')
 			
-			"""
-			outfile.write('  - pause:\n')
-			outfile.write('      seconds: 5\n')
 			
-			outfile.write('  - debug: var=var_return\n')
-			outfile.write('#get Task info\n')
-			outfile.write('  - name: get Taskinfo for '+cluster+'\n')
+			
+		#Wait for each Cluster
+		outfile.write('#wait for each cluster\n')
+		#foreach cluster in this Zone
+		for cluster in variablesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+			
+			
+			outfile.write('  - name: Wait for '+cluster+'\n')
 			outfile.write('    uri:\n')
 			outfile.write('      validate_certs: yes\n')
 			outfile.write('      headers:\n')
 			outfile.write('        Auth: "{{ var_token }}"\n')
 			outfile.write('        X-Api-Version: "1000"\n')
 			outfile.write('        Content-Type: application/json\n')
-			outfile.write('      url: "{{ var_return[\'location\'] }}"\n')
+			outfile.write('      url: "{{ var_return_'+convertToAnsibleVariableName(cluster)+'[\'location\'] }}"\n')
 			outfile.write('      method: GET\n')
 			outfile.write('      body_format: json\n')
 			outfile.write('      status_code: 200\n')
 			outfile.write('    no_log: False\n')
-			outfile.write('    register: var_return\n')
-			outfile.write('  - debug: var=var_return\n')
-			"""
-			outfile.write('\n')
-			outfile.write('\n')
-			outfile.write('\n')
+			outfile.write('    register: var_return_task_'+convertToAnsibleVariableName(cluster)+'\n')
+			outfile.write('    until: var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "New" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Pending" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Running" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Starting" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Unknown"\n')
+			outfile.write('    delay: 60\n')
+			outfile.write('    retries: 60\n')
 			outfile.write('\n')
 			
-			outfile.write('\n')
-			outfile.write('\n')
-			outfile.write('\n')
-			outfile.write('\n')
+			
+		#output last Taskoutput per Cluster
+		outfile.write('#full output for each cluster\n')
+		#foreach cluster in this Zone
+		for cluster in variablesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+			outfile.write('  - debug: var=var_return_task_'+convertToAnsibleVariableName(cluster)+'.json\n')
+		outfile.write('\n')
+		
+		#output last TaskoutputState per Cluster
+		outfile.write('#taskstate for each Cluster\n')
+		#foreach cluster in this Zone (A or B)
+		for cluster in variablesClustersAll:
+			if(cluster[0]!=frame["letter"]):
+				continue
+			outfile.write('  - debug: var=var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState\n')
+		outfile.write('\n')
 		#END
 		outfile.close()		
 		
