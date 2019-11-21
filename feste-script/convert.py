@@ -2792,7 +2792,95 @@ def writeAddHypervisorsToHVCP(nr,filenamepart):
 		waitAndOutputTask(outfile,clusterlist,urllist)
 
 		#END
-		outfile.close()		
+		outfile.close()
+		
+		
+		
+		
+		
+		
+#810
+def writeRemediateHypervisorProfiles(nr,filenamepart):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+filenamepart+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		hostname = frame["variables"]["oneview_hostname"].lower()+'.'+frame["variables"]["domain_name"]
+		writeFilepartRESTAPILogin(outfile,hostname,"Administrator",frame["variables"]["administrator_passwort"])
+		
+		#BEGIN
+		outfile.write('  - name: Retrieve HVP as name:uri dict\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "1000"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: https://a-dcb-syn0001.ad.nublar.de/rest/hypervisor-host-profiles\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    register: var_hvp\n')
+		outfile.write('  - set_fact: hvp={{[]}}\n')
+		outfile.write('  - set_fact: hvp="{{ hvp + [item] }}"\n')
+		outfile.write('    when: item.refreshState is match \'NotRefreshing\' and item.state is not match \'Configuring\' and item.status is not match \'OK\'\n')
+		outfile.write('    loop: "{{ var_hvp.json.members }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - set_fact: hvp2remediate={{[]}}\n')
+		outfile.write('  - set_fact: hvp2remediate="{{ hvp2remediate + [ item|combine({\'complianceState\':\'Remediate\'},recursive=True) ] }}"\n')
+		outfile.write('    loop: "{{ hvp }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		outfile.write('  - name: Remediate HVPs\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "1000"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: "https://a-dcb-syn0001.ad.nublar.de/{{ item.uri }}"\n')
+		outfile.write('      method: PUT\n')
+		outfile.write('      status_code: 202\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      body: "{{ item }}"\n')
+		outfile.write('    register: var_result\n')
+		outfile.write('    loop: "{{ hvp2remediate }}"\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('\n')
+		#outfile.write('  - debug: var=var_result\n')
+		outfile.write('\n')
+		outfile.write('  - name: Wait for completing Tasks...\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "1000"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: "{{ item[\'location\'] }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    no_log: True\n')
+		outfile.write('    register: var_result2\n')
+		outfile.write('    until: var_result2.json.taskState != "New" and var_result2.json.taskState != "Pending" and var_result2.json.taskState != "Running" and var_result2.json.taskState != "Starting" and var_result2.json.taskState != "Unknown"\n')
+		outfile.write('    delay: 60\n')
+		outfile.write('    retries: 60\n')
+		outfile.write('    loop: "{{ var_result.results }}"\n')
+		outfile.write('    loop_control:\n')
+		outfile.write('      label: "mylabel"\n')
+		outfile.write('      extended: yes\n')
+		outfile.write('\n')
+		outfile.write('#taskstate for each Cluster\n')
+		outfile.write('  - debug: var=item.json.taskState\n')
+		outfile.write('    loop: "{{ var_result2.results }}"\n')
+		outfile.write('    loop_control:\n')
+		outfile.write('      label: "mylabel"\n')
+		outfile.write('      extended: yes\n')
+		outfile.write('\n')	
+		
+
+		#END
+		outfile.close()
 		
 ############################################################################
 ############## Main Function ###############################################
@@ -2828,6 +2916,7 @@ def main():
 	writeAddHypervisorClusterProfile("362","addhypervisorclusterprofile") #ehemals 18
 	writeAddVolumesToHypervisorClusterProfile("364","addvolumeshvcp") #Add Volumes to Hypervisor Cluster profile #ehemals 22
 	writeAddHypervisorsToHVCP("366","addhypervisorshvcp") #Add Hypervisors TO HVCP #ehemals 23
+	writeRemediateHypervisorProfiles("810","writeremediatehypervisorprofiles") #RemediateHypervisorProfiles
 	
 #start
 main()
