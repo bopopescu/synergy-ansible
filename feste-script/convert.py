@@ -522,6 +522,44 @@ def writeFilepartConfigvariablesInline(outfile,spaces):
 	outfile.write(spaces+'username: "{{ var_imported_config[\'credentials\'][\'userName\'] }}"\n')
 	outfile.write(spaces+'password: "{{ var_imported_config[\'credentials\'][\'password\'] }}"\n')
 	outfile.write(spaces+'api_version: "{{ var_imported_config[\'api_version\'] }}"\n')
+	
+	
+def waitAndOutputTask(outfile,clusterlist,urllist):
+	for i in range(len(clusterlist)):
+		cluster = clusterlist[i]
+		url = urllist[i]
+
+		outfile.write('  - name: Wait for '+cluster+'\n')
+		outfile.write('    uri:\n')
+		outfile.write('      validate_certs: yes\n')
+		outfile.write('      headers:\n')
+		outfile.write('        Auth: "{{ var_token }}"\n')
+		outfile.write('        X-Api-Version: "1000"\n')
+		outfile.write('        Content-Type: application/json\n')
+		outfile.write('      url: "{{ '+url+' }}"\n')
+		outfile.write('      method: GET\n')
+		outfile.write('      body_format: json\n')
+		outfile.write('      status_code: 200\n')
+		outfile.write('    no_log: False\n')
+		outfile.write('    register: var_return_task_'+convertToAnsibleVariableName(cluster)+'\n')
+		outfile.write('    until: var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "New" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Pending" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Running" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Starting" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Unknown"\n')
+		outfile.write('    delay: 60\n')
+		outfile.write('    retries: 60\n')
+		outfile.write('\n')
+		
+	#output last Taskoutput per Cluster
+	outfile.write('#full output for each cluster\n')
+	for i in range(len(clusterlist)):
+		cluster = clusterlist[i]
+		outfile.write('  - debug: var=var_return_task_'+convertToAnsibleVariableName(cluster)+'.json\n')
+	outfile.write('\n')
+	
+	#output last TaskoutputState per Cluster
+	outfile.write('#taskstate for each Cluster\n')
+	for i in range(len(clusterlist)):
+		cluster = clusterlist[i]
+		outfile.write('  - debug: var=var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState\n')
+	outfile.write('\n')
 
 ############################################################################
 ############## Create Playbooks functions ##################################
@@ -696,24 +734,7 @@ def writeAddHypervisorManager(nr,filenamepart):
 		outfile.write('      status_code: 202\n')
 		outfile.write('    register: var_return\n')
 		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_return\n')
-		outfile.write('\n')
-		outfile.write('  - name: Taskinfo\n')
-		outfile.write('    uri:\n')
-		outfile.write('      validate_certs: yes\n')
-		outfile.write('      headers:\n')
-		outfile.write('        Auth: "{{ var_token }}"\n')
-		outfile.write('        X-Api-Version: "'+restApiVersion+'"\n')
-		outfile.write('        Content-Type: application/json\n')
-		outfile.write('      url: \'{{ var_return["location"] }}\'\n')
-		outfile.write('      method: GET\n')
-		outfile.write('      status_code: 200\n')
-		outfile.write('    register: var_taskinfo\n')
-		outfile.write('\n')
-		outfile.write('  - debug:\n')
-		outfile.write('      var: var_taskinfo\n')
-		outfile.write('\n')
+		waitAndOutputTask(outfile,["one"],["var_return['location']"])
 		#END
 		outfile.close()
 		
@@ -1406,8 +1427,7 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('      status_code: 202\n')
 		outfile.write('    register: nimble\n')
 		outfile.write('\n')
-		outfile.write('  - debug: var=nimble\n')
-		outfile.write('\n')
+		waitAndOutputTask(outfile,["one"],["nimble['location']"])
 		#END
 		outfile.close()
 		
@@ -2135,10 +2155,13 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		#outfile.write('  - meta: end_play\n')
 		#outfile.write('  - pause:\n')
 
+		clusterlist = []
+		urllist = [] #ansible variable to url
 		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
 				continue
-				
+			clusterlist.append(cluster)
+			urllist.append('var_return_'+convertToAnsibleVariableName(cluster)+'[\'location\']')
 			#BEGIN SET
 			outfile.write('  - name: Initiate asynchronous registration of an Hypervisor-Cluster-Profile (Using AUTH-Token) (Statuscode should be 202)\n')
 			outfile.write('    uri:\n')
@@ -2186,11 +2209,10 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('        path: "FFM-'+frame["letter"]+'"\n')
 			outfile.write('        initialScopeUris: []\n')
 			outfile.write('      status_code: 202\n')
-			outfile.write('    register: var_return\n')
+			outfile.write('    register: var_return_'+convertToAnsibleVariableName(cluster)+'\n')
 			outfile.write('\n')
-			#outfile.write('  - debug:\n')
-			#outfile.write('      var: var_return\n')
-			#outfile.write('\n')
+			
+		waitAndOutputTask(outfile,clusterlist,urllist)
 		#END
 		outfile.close()
 
@@ -2546,10 +2568,14 @@ def writeAddVolumesToHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('\n')
 		outfile.write('\n')
 
+		clusterlist = []
+		urllist = [] #ansible variable to url
 		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
 				continue
-
+			clusterlist.append(cluster)
+			urllist.append('var_return_'+convertToAnsibleVariableName(cluster)+'[\'location\']')
+			
 			outfile.write('#get var_current_hvcp_for_this_cluster\n')
 			outfile.write('  - name: get HVCP for '+cluster+'\n')
 			outfile.write('    uri:\n')
@@ -2569,7 +2595,6 @@ def writeAddVolumesToHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('    no_log: True\n')
 			outfile.write('  - set_fact: var_current_hvcp_for_this_cluster="{{ var_current_hvcp_for_this_cluster|combine({\'eTag\':None},recursive=True) }}"\n')
 			outfile.write('    no_log: True\n')
-			outfile.write('  - debug: var=var_current_hvcp_for_this_cluster\n')
 			outfile.write('\n')
 			outfile.write('#build temporary Array with all storageVolumeUris to attach. this is item[\'uri\'] from storage_volumes where item[\'name\']=cluster\n')
 			outfile.write('  - set_fact: tmpArray={{[]}}\n')
@@ -2593,12 +2618,13 @@ def writeAddVolumesToHypervisorClusterProfile(nr,filenamepart):
 			outfile.write('      body: "{{ var_current_hvcp_for_this_cluster|combine({\'sharedStorageVolumes\':tmpArray},recursive=True) }}"\n')
 			outfile.write('      status_code: 202\n')
 			outfile.write('    no_log: True\n')
-			outfile.write('    register: var_return\n')
+			outfile.write('    register: var_return_'+convertToAnsibleVariableName(cluster)+'\n')
 			outfile.write('\n')
 			outfile.write('\n')
 			outfile.write('\n')
 			outfile.write('\n')
 			outfile.write('\n')
+		waitAndOutputTask(outfile,clusterlist,urllist)
 		#END
 		outfile.close()
 		
@@ -2684,12 +2710,18 @@ def writeAddHypervisorsToHVCP(nr,filenamepart):
 		outfile.write('\n')
 		outfile.write('\n')
 		
+		
+		clusterlist = []
+		urllist = [] #ansible variable to url
 		#CREATE
 		#foreach cluster in this Zone (A or B)
 		for cluster in variablesClustersAll:
 			if(cluster[0]!=frame["letter"]):
 				continue
 
+			clusterlist.append(cluster)
+			urllist.append('var_return_'+convertToAnsibleVariableName(cluster)+'[\'location\']')
+			
 			outfile.write('#get var_current_hvcp_for_this_cluster\n')
 			outfile.write('  - name: get HVCP for '+cluster+'\n')
 			outfile.write('    uri:\n')
@@ -2754,51 +2786,11 @@ def writeAddHypervisorsToHVCP(nr,filenamepart):
 			outfile.write('\n')
 			
 			
-			
 		#Wait for each Cluster
 		outfile.write('#wait for each cluster\n')
 		#foreach cluster in this Zone
-		for cluster in variablesClustersAll:
-			if(cluster[0]!=frame["letter"]):
-				continue
-			
-			
-			outfile.write('  - name: Wait for '+cluster+'\n')
-			outfile.write('    uri:\n')
-			outfile.write('      validate_certs: yes\n')
-			outfile.write('      headers:\n')
-			outfile.write('        Auth: "{{ var_token }}"\n')
-			outfile.write('        X-Api-Version: "1000"\n')
-			outfile.write('        Content-Type: application/json\n')
-			outfile.write('      url: "{{ var_return_'+convertToAnsibleVariableName(cluster)+'[\'location\'] }}"\n')
-			outfile.write('      method: GET\n')
-			outfile.write('      body_format: json\n')
-			outfile.write('      status_code: 200\n')
-			outfile.write('    no_log: False\n')
-			outfile.write('    register: var_return_task_'+convertToAnsibleVariableName(cluster)+'\n')
-			outfile.write('    until: var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "New" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Pending" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Running" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Starting" and var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState != "Unknown"\n')
-			outfile.write('    delay: 60\n')
-			outfile.write('    retries: 60\n')
-			outfile.write('\n')
-			
-			
-		#output last Taskoutput per Cluster
-		outfile.write('#full output for each cluster\n')
-		#foreach cluster in this Zone
-		for cluster in variablesClustersAll:
-			if(cluster[0]!=frame["letter"]):
-				continue
-			outfile.write('  - debug: var=var_return_task_'+convertToAnsibleVariableName(cluster)+'.json\n')
-		outfile.write('\n')
-		
-		#output last TaskoutputState per Cluster
-		outfile.write('#taskstate for each Cluster\n')
-		#foreach cluster in this Zone (A or B)
-		for cluster in variablesClustersAll:
-			if(cluster[0]!=frame["letter"]):
-				continue
-			outfile.write('  - debug: var=var_return_task_'+convertToAnsibleVariableName(cluster)+'.json.taskState\n')
-		outfile.write('\n')
+		waitAndOutputTask(outfile,clusterlist,urllist)
+
 		#END
 		outfile.close()		
 		
