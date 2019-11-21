@@ -47,7 +47,7 @@
   - set_fact: hvp="{{ hvp + [item] }}"
     when: item.refreshState is match 'NotRefreshing' and item.state is not match 'Configuring' and item.status is not match 'OK'
     loop: "{{ var_hvp.json.members }}"
-    no_log: False
+    no_log: True
 
   - set_fact: hvp2remediate={{[]}}
   - set_fact: hvp2remediate="{{ hvp2remediate + [ item|combine({'complianceState':'Remediate'},recursive=True) ] }}"
