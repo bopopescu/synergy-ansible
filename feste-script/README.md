@@ -6,7 +6,7 @@ Copyright 2019 Concat AG
 
 
 Warnungen und Hinweise:
-- Aufgaben, welche nicht durch Oneview-Ansible-Module bereitgestellt werden wurden mittels REST-API-Aufrufen realisiert. Bei diesen wird die Idempotenz *nicht* garantirt!
+- Aufgaben, welche nicht durch Oneview-Ansible-Module bereitgestellt werden wurden mittels REST-API-Aufrufen realisiert. Bei diesen wird die Idempotenz *nicht* garantiert!
 
 Ausgangslage:
 Für das Projekt Nublar soll die Installation der Hardware Synergy und der Managementsoftware Oneview mittels Ansible automatisiert werden. Nötige Informationen stehen in einer Exceldatei.
