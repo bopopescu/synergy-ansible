@@ -58,11 +58,12 @@ os.chdir(dname)
 ############## Small helper functions ######################################
 ############################################################################
 
+#A->0, B->1, ...
 def columnCharToInt(c):
 	c = c.lower()
 	return string.ascii_lowercase.index(c)
 
-
+#string to lowercase, space to _, - to _, remove everything except ascii-letters and _
 def convertToAnsibleVariableName(n):
 	n = str(n)
 	n = n.lower().replace(" ","_").replace("-","_")
@@ -78,7 +79,6 @@ def findFrames():
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
 	worksheet = workbook.sheet_by_name(exceltabgeneral)
-	
 
 	columnNamesInt = columnCharToInt(columnNames)
 	for row in range(worksheet.nrows):
@@ -140,7 +140,6 @@ def findNimbles():
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
 	worksheet = workbook.sheet_by_name(exceltabstorage)
-	
 
 	columnNamesInt = columnCharToInt(columnNames)
 	for row in range(worksheet.nrows):
@@ -195,7 +194,6 @@ def findNimbles():
 				data = data[:pos-1]
 			
 			name = convertToAnsibleVariableName(name)			
-
 			
 			variables[name] = data
 		nimble["variables"] = variables
@@ -253,7 +251,6 @@ def findSynergyNimbles():
 			
 			name = convertToAnsibleVariableName(name)			
 
-			
 			variables[name] = data
 		nimble["variables"] = variables
 
@@ -297,7 +294,6 @@ def findHypervisor():
 		
 		name = convertToAnsibleVariableName(name)			
 		variablesHypervisorAll[name] = data
-		
 		
 	#clusters
 	start = False
@@ -411,8 +407,6 @@ def findHostsPerCluster():
 				variablesHead.append(name)
 			continue
 	
-	
-
 		variablesOneClusterHost = {}
 		for col in range(worksheet.ncols):
 			val = worksheet.cell_value(row,col)
@@ -2861,9 +2855,8 @@ def writeMasterPlaybook():
 		outfile.close()
 	
 
-	
 ############################################################################
-############## Playbooks definition#########################################
+############## Playbooks definition ########################################
 ############################################################################
 
 playbooks = []
@@ -2907,7 +2900,6 @@ def main():
 	
 	for fileVariables in playbooks:
 		fileVariables["function"](str(fileVariables["nr"]),fileVariables["name"])
-	
 	
 #start
 main()
