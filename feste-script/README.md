@@ -1,8 +1,12 @@
-Entwickelt von Felix Sterzelmaier, Concat AG
+Entwickelt von Felix Sterzelmaier
 Für die ITSG
 im November 2019
 Projektleiter: Florian Fein
+Copyright 2019 Concat AG
 
+
+Warnungen und Hinweise:
+- Aufgaben, welche nicht durch Oneview-Ansible-Module bereitgestellt werden wurden mittels REST-API-Aufrufen realisiert. Bei diesen wird die Idempotenz *nicht* garantirt!
 
 Ausgangslage:
 Für das Projekt Nublar soll die Installation der Hardware Synergy und der Managementsoftware Oneview mittels Ansible automatisiert werden. Nötige Informationen stehen in einer Exceldatei.
