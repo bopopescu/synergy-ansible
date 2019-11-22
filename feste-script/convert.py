@@ -21,7 +21,7 @@ import re
 
 filename_prefix = ""
 filename_sufix = ".yml"
-columnNames = "A" # in exceltabgeneral
+columnNames = "A"
 config_prefx = ""
 config_sufix = "_oneview_config.json"
 inputfilename = "wip_checkliste_gesamt.xlsx"
@@ -2805,6 +2805,7 @@ def writeRemediateHypervisorProfiles(nr,filenamepart):
 		outfile.write('\n')
 		#outfile.write('  - debug: var=var_result\n')
 		outfile.write('\n')
+		outfile.write('#If this task works correctly is not 100 percent verified!\n')
 		outfile.write('  - name: Wait for completing Tasks...\n')
 		outfile.write('    uri:\n')
 		outfile.write('      validate_certs: yes\n')
