@@ -54,9 +54,6 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
-
-
-
 ############################################################################
 ############## Small helper functions ######################################
 ############################################################################
@@ -2848,46 +2845,51 @@ def writeRemediateHypervisorProfiles(nr,filenamepart):
 		outfile.close()
 		
 		
-
+#Masterplaybook (one per zone)
 def writeMasterPlaybook():
 	for frame in variablesAll:
 		filePath = outputfolder+"/"+frame["letter"]+filename_sufix
 		outfile = open(filePath,'w')
 		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix,False,False)
-		
-		
-		files = []
-		files.append({"nr":105,"name":"renameenclosures"})
-		files.append({"nr":110,"name":"renameserverhardwaretypes"})
-		files.append({"nr":210,"name":"ntp"})
-		files.append({"nr":270,"name":"addfirmwarebundle"})
-		files.append({"nr":280,"name":"subnetrange"})
-		files.append({"nr":290,"name":"ethernetnetworkwithassociatedsubnet"})
-		files.append({"nr":310,"name":"osds"})
-		files.append({"nr":320,"name":"networkset"})
-		files.append({"nr":330,"name":"storagesystem"})
-		files.append({"nr":334,"name":"createvolumetemplate"})
-		files.append({"nr":336,"name":"createvolumes"})
-		files.append({"nr":340,"name":"logicalinterconnectgroup"})
-		files.append({"nr":342,"name":"enclosuregroup"})
-		files.append({"nr":344,"name":"logicalenclosure"})
-		files.append({"nr":346,"name":"createserverprofiletemplate"})
-		files.append({"nr":350,"name":"uploadAndExtractIsArtifact"})
-		files.append({"nr":352,"name":"uploadGI"})
-		files.append({"nr":354,"name":"createdeploymentplan"})
-		files.append({"nr":360,"name":"addhypervisormanager"})
-		files.append({"nr":362,"name":"addhypervisorclusterprofile"})
-		files.append({"nr":364,"name":"addvolumeshvcp"})
-		files.append({"nr":366,"name":"addhypervisorshvcp"})
-		
+
 		#BEGIN
 		outfile.write('\n')
-		for fileVariables in files:
+		for fileVariables in playbooks:
 			outfile.write('- import_playbook: "'+frame["letter"]+'_'+str(fileVariables["nr"])+'_'+fileVariables["name"]+'.yml"\n')
 		outfile.write('\n')
 		#END
 		outfile.close()
-		
+	
+
+	
+############################################################################
+############## Playbooks definition#########################################
+############################################################################
+
+playbooks = []
+playbooks.append({"nr":105,"name":"renameenclosures","function":writeRenameEnclosures})
+playbooks.append({"nr":110,"name":"renameserverhardwaretypes","function":writeRenameServerHardwareTypes})
+playbooks.append({"nr":210,"name":"ntp","function":writeTimelocale})
+playbooks.append({"nr":270,"name":"addfirmwarebundle","function":writeAddFirmwareBundle})
+playbooks.append({"nr":280,"name":"subnetrange","function":writeAddresspoolsubnet})
+playbooks.append({"nr":290,"name":"ethernetnetworkwithassociatedsubnet","function":writeCreatenetwork})
+playbooks.append({"nr":310,"name":"osds","function":writeOSdeploymentServer})
+playbooks.append({"nr":320,"name":"networkset","function":writeNetworkset})
+playbooks.append({"nr":330,"name":"storagesystem","function":writeStoragesystem})
+playbooks.append({"nr":334,"name":"createvolumetemplate","function":writeCreateVolumeTemplate})
+playbooks.append({"nr":336,"name":"createvolumes","function":writeCreateVolumes})
+playbooks.append({"nr":340,"name":"logicalinterconnectgroup","function":writeLogicalInterconnectGroup})
+playbooks.append({"nr":342,"name":"enclosuregroup","function":writeEnclosureGroup})
+playbooks.append({"nr":344,"name":"logicalenclosure","function":writeLogicalEnclosure})
+playbooks.append({"nr":346,"name":"createserverprofiletemplate","function":writeCreateServerProfileTemplate})
+playbooks.append({"nr":350,"name":"uploadAndExtractIsArtifact","function":writeUploadAndExtractIsArtifact})
+playbooks.append({"nr":352,"name":"uploadGI","function":writeUploadGI})
+playbooks.append({"nr":354,"name":"createdeploymentplan","function":writeCreatedeploymentplan})
+playbooks.append({"nr":360,"name":"addhypervisormanager","function":writeAddHypervisorManager})
+playbooks.append({"nr":362,"name":"addhypervisorclusterprofile","function":writeAddHypervisorClusterProfile})
+playbooks.append({"nr":364,"name":"addvolumeshvcp","function":writeAddVolumesToHypervisorClusterProfile})
+playbooks.append({"nr":366,"name":"addhypervisorshvcp","function":writeAddHypervisorsToHVCP})
+playbooks.append({"nr":810,"name":"remediatehypervisorprofiles","function":writeRemediateHypervisorProfiles})
 		
 ############################################################################
 ############## Main Function ###############################################
@@ -2901,30 +2903,11 @@ def main():
 	findVariablesMgmtNet()
 	findHostsPerCluster()
 	writeConfigs()
-	writeRenameEnclosures("105","renameenclosures") #ehemals 19
-	writeRenameServerHardwareTypes("110","renameserverhardwaretypes") #ehemals 16
-	writeTimelocale("210","ntp") #ehemals 1
-	writeAddFirmwareBundle("270","addfirmwarebundle") #ehemals 11
-	writeAddresspoolsubnet("280","subnetrange") #ehemals 2
-	writeCreatenetwork("290","ethernetnetworkwithassociatedsubnet") #ehemals 4
-	writeOSdeploymentServer("310","osds") #ehemals 5
-	writeNetworkset("320","networkset") #ehemals 6
-	writeStoragesystem("330","storagesystem") #ehemals 10
-	writeCreateVolumeTemplate("334","createvolumetemplate") #ehemals 20
-	writeCreateVolumes("336","createvolumes") #ehemals 21
-	writeLogicalInterconnectGroup("340","logicalinterconnectgroup") #ehemals 7
-	writeEnclosureGroup("342","enclosuregroup") #ehemals 8
-	writeLogicalEnclosure("344","logicalenclosure") #ehemals 9
-	writeCreateServerProfileTemplate("346","createserverprofiletemplate") #ehemals 17
-	writeUploadAndExtractIsArtifact("350","uploadAndExtractIsArtifact") #ehemals 13
-	writeUploadGI("352","uploadGI") #ehemals 14
-	writeCreatedeploymentplan("354","createdeploymentplan") #ehemals 15
-	writeAddHypervisorManager("360","addhypervisormanager") #ehemals 3
-	writeAddHypervisorClusterProfile("362","addhypervisorclusterprofile") #ehemals 18
-	writeAddVolumesToHypervisorClusterProfile("364","addvolumeshvcp") #ehemals 22
-	writeAddHypervisorsToHVCP("366","addhypervisorshvcp") #ehemals 23
-	writeRemediateHypervisorProfiles("810","remediatehypervisorprofiles") #RemediateHypervisorProfiles
-	
 	writeMasterPlaybook()
+	
+	for fileVariables in playbooks:
+		fileVariables["function"](str(fileVariables["nr"]),fileVariables["name"])
+	
+	
 #start
 main()
