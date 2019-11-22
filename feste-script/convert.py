@@ -451,7 +451,7 @@ def writeConfigs():
 		outfile.write("}"+"\n")
 		outfile.close()
 
-def writeFileheader(outfile,configFileName,writeConfigPart=True):
+def writeFileheader(outfile,configFileName,writeConfigPart=True,writeTaskPart=True):
 	filename = os.path.basename(outfile.name)
 	print("now: "+filename)
 	outfile.write("###\n")
@@ -469,7 +469,8 @@ def writeFileheader(outfile,configFileName,writeConfigPart=True):
 	if(writeConfigPart):
 		outfile.write("  vars:\n")
 		outfile.write('    config: "{{ playbook_dir }}/'+configFileName+'"\n')
-	outfile.write("  tasks:\n")
+	if(writeTaskPart):
+		outfile.write("  tasks:\n")
 	outfile.write("\n")
 		
 def writeFilepartRESTAPILogin(outfile,host,username,password):
@@ -2846,6 +2847,48 @@ def writeRemediateHypervisorProfiles(nr,filenamepart):
 		#END
 		outfile.close()
 		
+		
+
+def writeMasterPlaybook():
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+frame["letter"]+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix,False,False)
+		
+		
+		files = []
+		files.append({"nr":105,"name":"renameenclosures"})
+		files.append({"nr":110,"name":"renameserverhardwaretypes"})
+		files.append({"nr":210,"name":"ntp"})
+		files.append({"nr":270,"name":"addfirmwarebundle"})
+		files.append({"nr":280,"name":"subnetrange"})
+		files.append({"nr":290,"name":"ethernetnetworkwithassociatedsubnet"})
+		files.append({"nr":310,"name":"osds"})
+		files.append({"nr":320,"name":"networkset"})
+		files.append({"nr":330,"name":"storagesystem"})
+		files.append({"nr":334,"name":"createvolumetemplate"})
+		files.append({"nr":336,"name":"createvolumes"})
+		files.append({"nr":340,"name":"logicalinterconnectgroup"})
+		files.append({"nr":342,"name":"enclosuregroup"})
+		files.append({"nr":344,"name":"logicalenclosure"})
+		files.append({"nr":346,"name":"createserverprofiletemplate"})
+		files.append({"nr":350,"name":"uploadAndExtractIsArtifact"})
+		files.append({"nr":352,"name":"uploadGI"})
+		files.append({"nr":354,"name":"createdeploymentplan"})
+		files.append({"nr":360,"name":"addhypervisormanager"})
+		files.append({"nr":362,"name":"addhypervisorclusterprofile"})
+		files.append({"nr":364,"name":"addvolumeshvcp"})
+		files.append({"nr":366,"name":"addhypervisorshvcp"})
+		
+		#BEGIN
+		outfile.write('\n')
+		for fileVariables in files:
+			outfile.write('- import_playbook: "'+frame["letter"]+'_'+str(fileVariables["nr"])+'_'+fileVariables["name"]+'.yml"\n')
+		outfile.write('\n')
+		#END
+		outfile.close()
+		
+		
 ############################################################################
 ############## Main Function ###############################################
 ############################################################################
@@ -2882,5 +2925,6 @@ def main():
 	writeAddHypervisorsToHVCP("366","addhypervisorshvcp") #ehemals 23
 	writeRemediateHypervisorProfiles("810","remediatehypervisorprofiles") #RemediateHypervisorProfiles
 	
+	writeMasterPlaybook()
 #start
 main()
