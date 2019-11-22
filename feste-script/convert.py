@@ -2415,10 +2415,10 @@ def writeAddHypervisorClusterProfile(nr,filenamepart):
 		outfile.write('    with_items: \'{{ var_distributedswitches_names_raw["results"][0]["json"]["networkUris"] }}\'\n')
 		outfile.write('    no_log: True\n')
 		outfile.write('\n')
-		outfile.write('  - set_fact: var_switchesrequest="{{[] | switchesrequest(server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_names_raw,var_distributedswitches_names_raw,"'+frame["letter"]+'",var_distributedswitches_networks_raw["results"])}}"\n')
+		outfile.write('  - set_fact: var_switchesrequest="{{lookup(\'switchesrequest\',server_profile_templates[0]["connectionSettings"]["connections"],var_standardswitches_names_raw,var_distributedswitches_names_raw,"'+frame["letter"]+'",var_distributedswitches_networks_raw["results"])}}"\n')
 		#outfile.write('  - debug: var=var_switchesrequest\n')
 		outfile.write('\n')	
-
+		
 		#outfile.write('  - meta: end_play\n')
 		#outfile.write('  - pause:\n')
 
