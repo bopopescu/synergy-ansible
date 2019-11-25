@@ -25,12 +25,13 @@ columnNames = "A"
 config_prefx = ""
 config_sufix = "_oneview_config.json"
 inputfilename = "wip_checkliste_gesamt.xlsx"
-exceltabgeneral = "Synergy-MGMT"
+exceltabmgmt = "Synergy-MGMT"
 exceltabsubnets = "Synergy-Subnets"
 exceltabnets = "Synergy-Networks"
 exceltabstorage = "Nimble"
 exceltabhypervisor = "Synergy-VMware"
 exceltabnimble = "Synergy-Nimble"
+exceltabgeneral = "Umgebung allgemein"
 outputfolder = "output"
 restApiVersion = "1000"
 restDomain = "LOCAL"
@@ -48,6 +49,7 @@ variableHVCPserverpassword = ""
 variableHVCPmgmtNet = ""
 variablesMgmtNet = {}
 variablesClusterHosts = []
+variablesGeneral = {}
 
 #change working directory to script path/xlsx path
 abspath = os.path.abspath(__file__)
@@ -78,7 +80,7 @@ def findFrames():
 	global variablesAll
 	#open workbook and worksheet
 	workbook = xlrd.open_workbook(inputfilename)
-	worksheet = workbook.sheet_by_name(exceltabgeneral)
+	worksheet = workbook.sheet_by_name(exceltabmgmt)
 
 	columnNamesInt = columnCharToInt(columnNames)
 	for row in range(worksheet.nrows):
@@ -422,6 +424,27 @@ def findHostsPerCluster():
 				variablesOneClusterHost[variablesHead[col]] = val
 		
 		variablesClusterHosts.append(variablesOneClusterHost)
+		
+						
+def findGeneral():
+	global variablesGeneral
+	workbook = xlrd.open_workbook(inputfilename)
+	worksheet = workbook.sheet_by_name(exceltabgeneral)
+	
+	started = False
+	headColumn = 6
+	for row in range(0,worksheet.nrows):
+	
+		name = worksheet.cell_value(row,headColumn)
+		if(name=="SNMP Trap Receiver & Manager"):
+			name = convertToAnsibleVariableName(name)
+			value = worksheet.cell_value(row,headColumn+1).split("\n")[0]
+			variablesGeneral[name] = value
+			
+		if(name=="Community Name"):
+			name = convertToAnsibleVariableName(name)
+			value = worksheet.cell_value(row,headColumn+1)
+			variablesGeneral[name] = value
 
 ############################################################################
 ############## Write Config and Fileheaders functions ######################
@@ -684,6 +707,29 @@ def writeTimelocale(nr,name):
 		outfile.write("       delegate_to: localhost\n")
 		outfile.write("\n")
 		outfile.close()		
+
+#215
+def writeConfigureSNMP(nr,name):
+	for frame in variablesAll:
+		filePath = outputfolder+"/"+filename_prefix+frame["letter"]+"_"+nr+"_"+name+filename_sufix
+		outfile = open(filePath,'w')
+		writeFileheader(outfile,config_prefx+frame["letter"]+config_sufix)
+		outfile.write('    - name: Set Appliance Device Read Community String\n')
+		outfile.write('      oneview_appliance_device_read_community:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          communityString: "'+variablesGeneral["community_name"]+'"\n')
+		outfile.write('\n')
+		outfile.write('    - name: Set Appliance Device SNMPv1 Trap Destination\n')
+		outfile.write('      oneview_appliance_device_snmp_v1_trap_destinations:\n')
+		outfile.write('        config: "{{ config }}"\n')
+		outfile.write('        state: present\n')
+		outfile.write('        data:\n')
+		outfile.write('          communityString: "'+variablesGeneral["community_name"]+'"\n')
+		outfile.write('          destination: "'+variablesGeneral["snmp_trap_receiver__manager"]+'"\n')
+		outfile.write('          port: 162\n')
+		outfile.write('\n')
 
 #270 ehemals #11
 def writeAddFirmwareBundle(nr,filenamepart):
@@ -2863,6 +2909,7 @@ playbooks = []
 playbooks.append({"nr":105,"name":"renameEnclosures","function":writeRenameEnclosures})
 playbooks.append({"nr":110,"name":"renameServerHardwareTypes","function":writeRenameServerHardwareTypes})
 playbooks.append({"nr":210,"name":"setDateTime","function":writeTimelocale})
+playbooks.append({"nr":215,"name":"ConfigureSNMP","function":writeConfigureSNMP})
 playbooks.append({"nr":270,"name":"addFirmwareBundle","function":writeAddFirmwareBundle})
 playbooks.append({"nr":280,"name":"createSubnetsAndRanges","function":writeAddresspoolsubnet})
 playbooks.append({"nr":290,"name":"createEthernetNetworks","function":writeCreatenetwork})
@@ -2895,6 +2942,7 @@ def main():
 	findHypervisor()
 	findVariablesMgmtNet()
 	findHostsPerCluster()
+	findGeneral()
 	writeConfigs()
 	writeMasterPlaybook()
 	

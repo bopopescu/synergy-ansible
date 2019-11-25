@@ -22,7 +22,7 @@ Workflow:
 Exportieren der aktuellsten Version der Exceldatei.
 Anpassen der Konfiguration im gekennzeichneten Bereich der Datei convert.py nach Vorgaben von Oliver Antwerpen.
 Ausführen der run.bat (Installiert Python-Abhängigkeiten. Und Startet das Python-Skript.)
-=> Das hierdurch ausgeführte Python-Skript liest die Exceltabelle (wip_checkliste_gesamt.xlsx) ein und generiert hierzu passende Ansible-Playbooks und Konfigurationsdateien im Ordner output. Diese benötigen die Dateien, welche im Unterordner "filter_plugins" liegen. Dateien im Unterordner "files" sind nicht Teil dieses git-Repositorys und werden vor dem Ausführen auf dem Server hinzugefügt.
+=> Das hierdurch ausgeführte Python-Skript liest die Exceltabelle (wip_checkliste_gesamt.xlsx) ein und generiert hierzu passende Ansible-Playbooks und Konfigurationsdateien im Ordner output. Diese benötigen die Dateien, welche im Unterordner "filter_plugins" und "lookup_plugins" liegen. Dateien im Unterordner "files" sind nicht Teil dieses git-Repositorys und werden vor dem Ausführen auf dem Server hinzugefügt.
 
 
 Setup Linux:
