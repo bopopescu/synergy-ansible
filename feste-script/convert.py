@@ -1058,9 +1058,9 @@ def writeStoragesystem(nr,filenamepart):
 			outfile.write('  - set_fact: var_iscsi_'+str(i)+'_network_uri="{{ ethernet_networks.uri }}"\n')	
 			outfile.write('\n')	
 			
-		extensionstring = ""
-		for i in range(len(networks)):
-			extensionstring = extensionstring+' | assign_nimble_port("'+networks[i]+'",var_iscsi_'+str(i)+'_network_uri)'
+		#extensionstring = ""
+		#for i in range(len(networks)):
+		#	extensionstring = extensionstring+' | assign_nimble_port("'+networks[i]+'",var_iscsi_'+str(i)+'_network_uri)'
 		
 		outfile.write('  - name: Add Nimble Storage System\n')	
 		outfile.write('    oneview_storage_system:\n')	
@@ -1094,10 +1094,47 @@ def writeStoragesystem(nr,filenamepart):
 		outfile.write('      method: GET\n')
 		outfile.write('    register: nimble\n')
 		outfile.write('\n')			
+		#outfile.write('  - name: Populate Nimble Ports with Network URIs\n')
+		#outfile.write('    set_fact:\n')
+		#outfile.write('      nimble_with_ports: \'{{ nimble.json'+extensionstring+' }}\'\n')
+		#outfile.write('\n')
+		
+		strings1 = []
+		strings2 = []
+		for i in range(len(networks)):
+			varname = "var_list_"+convertToAnsibleVariableName(networks[i])
+			strings1.append(varname)
+			strings2.append('item.name != "'+networks[i]+'"')
+			
+			outfile.write('  - set_fact:\n')
+			outfile.write('      '+varname+': "{{ [] }}"\n')
+			outfile.write('  - name: set fact\n')
+			outfile.write('    set_fact:\n')
+			outfile.write('      '+varname+': "{{ '+varname+' + [item | combine({\'expectedNetworkUri\':var_iscsi_'+str(i)+'_network_uri,\'mode\':\'Managed\'})] }}"\n')
+			outfile.write('    when: item.name == "'+networks[i]+'"\n')
+			outfile.write('    loop: "{{ nimble.json.ports }}"\n')
+			#outfile.write('  - debug: var='+varname+'\n')
+			outfile.write('\n')
+
+		outfile.write('  - set_fact:\n')
+		if(len(strings1)==0):
+			outfile.write('      var_ports: "{{ [] }}"\n')
+		else:
+			outfile.write('      var_ports: "{{ [] + '+' + '.join(strings1)+'}}"\n')
+		outfile.write('  - set_fact:\n')
+		outfile.write('      var_ports: "{{ var_ports + [item] }}"\n')
+		if(len(strings2)!=0):
+			outfile.write('    when: '+' and '.join(strings2)+'\n')
+		outfile.write('    loop: "{{ nimble.json.ports }}"\n')
+		#outfile.write('  - debug: var=var_ports\n')
+		outfile.write('\n')
 		outfile.write('  - name: Populate Nimble Ports with Network URIs\n')
 		outfile.write('    set_fact:\n')
-		outfile.write('      nimble_with_ports: \'{{ nimble.json'+extensionstring+' }}\'\n')
+		outfile.write('      nimble_with_ports: \'{{ nimble.json |combine({"ports":var_ports})}}\'\n')
+		outfile.write('  - debug: var=nimble_with_ports\n')
 		outfile.write('\n')
+		
+		
 		outfile.write('  - name: Update Nimble System \n')
 		outfile.write('    uri:\n')
 		outfile.write('      headers:\n')
